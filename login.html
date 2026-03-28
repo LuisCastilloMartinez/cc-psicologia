@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PsicoSoft — Inicia sesión para acceder al sistema de gestión de consultorio">
+  <title>Iniciar Sesión — PsicoSoft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-wrapper {
+      width: 100%; max-width: 440px; padding: 20px;
+    }
+    .login-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px 36px 36px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--rose-light), var(--lavender), var(--mint-light));
+    }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo .icon { font-size: 48px; display: block; margin-bottom: 12px; animation: float 4s ease-in-out infinite; }
+    .login-logo h1 { font-family: var(--ff-display); font-size: 32px; color: var(--text); margin: 0; }
+    .login-logo p { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+
+    .login-field { margin-bottom: 20px; }
+    .login-field label {
+      display: block; font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-soft); margin-bottom: 6px;
+    }
+    .login-field input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); font-family: var(--ff-body); font-size: 14px;
+      background: var(--rose-pale); transition: border-color .2s, box-shadow .2s;
+      box-sizing: border-box;
+    }
+    .login-field input:focus {
+      outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(249,168,201,.25);
+    }
+
+    .login-btn {
+      width: 100%; padding: 14px; border: none; border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+      color: white; font-family: var(--ff-body); font-size: 15px; font-weight: 800;
+      cursor: pointer; transition: transform .15s, box-shadow .15s;
+      margin-top: 8px;
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .login-error {
+      background: #fff1f2; border: 1px solid #fecdd3; color: #be123c;
+      padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px;
+      margin-bottom: 16px; display: none; text-align: center;
+    }
+    .login-error.visible { display: block; animation: shake .3s ease-in-out; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .login-security {
+      text-align: center; margin-top: 24px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .login-security p { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .login-security .shields { display: flex; justify-content: center; gap: 16px; margin-top: 10px; }
+    .login-security .shield {
+      display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700;
+      color: var(--text-soft); background: var(--rose-pale); padding: 4px 10px;
+      border-radius: var(--radius-xl); border: 1px solid var(--border);
+    }
+
+    .decor { position: fixed; pointer-events: none; opacity: .15; font-size: 40px; }
+    .decor.tl { top: 10%; left: 5%; animation: float 5s ease-in-out infinite; }
+    .decor.tr { top: 15%; right: 8%; animation: float 6s ease-in-out infinite .5s; }
+    .decor.bl { bottom: 12%; left: 10%; animation: float 5.5s ease-in-out infinite 1s; }
+    .decor.br { bottom: 8%; right: 5%; animation: float 4.5s ease-in-out infinite 1.5s; }
+  </style>
+</head>
+<body>
+
+<div class="decor tl">🌸</div>
+<div class="decor tr">🌷</div>
+<div class="decor bl">✨</div>
+<div class="decor br">🌺</div>
+
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">🌸</span>
+      <h1>PsicoSoft</h1>
+      <p>Sistema de Gestión de Consultorio</p>
+    </div>
+
+    <div class="login-error" id="login-error"></div>
+
+    <form id="login-form">
+      <div class="login-field">
+        <label for="email">📧 Correo electrónico</label>
+        <input type="email" id="email" name="email" placeholder="admin@psicosoft.local" required autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label for="password">🔒 Contraseña</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password" minlength="8">
+      </div>
+      <button type="submit" class="login-btn" id="login-btn">
+        🌸 Iniciar sesión
+      </button>
+    </form>
+
+    <div class="login-security">
+      <p>Tus datos están protegidos con cifrado AES-256</p>
+      <div class="shields">
+        <div class="shield">🔐 LFPDPPP</div>
+        <div class="shield">🏥 NOM-024</div>
+        <div class="shield">🛡️ ISO 27001</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin + '/api';
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errorBox = document.getElementById('login-error');
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Verificando...';
+  errorBox.classList.remove('visible');
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Error de autenticación');
+    }
+
+    // Store token securely
+    sessionStorage.setItem('psicosoft_token', data.token);
+    sessionStorage.setItem('psicosoft_user', JSON.stringify(data.user));
+
+    // Redirect to dashboard
+    window.location.href = '/index.html';
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = '🌸 Iniciar sesión';
+  }
+});
+
+// If already logged in, redirect
+if (sessionStorage.getItem('psicosoft_token')) {
+  window.location.href = '/index.html';
+}
+</script>
+</body>
+</html>

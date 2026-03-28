@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PsicoSoft — Tu consultorio en un solo lugar</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ── HOME EXCLUSIVO ── */
+.hero {
+  min-height: calc(100vh - var(--nav-h));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px 80px;
+  position: relative;
+}
+
+/* Flores decorativas SVG flotantes */
+.deco {
+  position: absolute;
+  pointer-events: none;
+  opacity: .55;
+  font-size: 2rem;
+}
+.d1 { top: 8%;  left: 5%;  animation: float 5s ease-in-out infinite; }
+.d2 { top: 15%; right: 7%; animation: float 6s ease-in-out infinite 1s; }
+.d3 { bottom: 20%; left: 8%;  animation: float 4.5s ease-in-out infinite .5s; }
+.d4 { bottom: 28%; right: 6%; animation: float 7s ease-in-out infinite 2s; }
+.d5 { top: 40%; left: 2%;  animation: float 5.5s ease-in-out infinite 1.5s; font-size:1.4rem; }
+.d6 { top: 55%; right: 3%; animation: float 6.5s ease-in-out infinite 0.8s; font-size:1.4rem; }
+
+.hero-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--blush), var(--lav-light));
+  color: var(--mauve-deep);
+  border: 1.5px solid var(--border);
+  border-radius: 40px;
+  padding: 6px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  animation: slideUp .6s .1s both;
+}
+
+.hero h1 {
+  font-family: var(--ff-display);
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  margin-bottom: 18px;
+  animation: slideUp .6s .2s both;
+}
+.hero h1 em { font-style: italic; color: var(--rose-deep); }
+.hero h1 .sub-word { display: block; font-size: 55%; color: var(--text-soft); font-style: normal; margin-top: 4px; }
+
+.hero-desc {
+  font-size: 17px;
+  color: var(--text-soft);
+  max-width: 520px;
+  line-height: 1.7;
+  margin-bottom: 36px;
+  animation: slideUp .6s .3s both;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: slideUp .6s .4s both;
+}
+.hero-btns .btn { font-size: 15px; padding: 14px 32px; }
+
+/* Tarjetas de características */
+.features {
+  padding: 60px 0;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.feat-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px 24px;
+  text-align: center;
+  box-shadow: 0 4px 24px var(--shadow);
+  transition: transform .25s, box-shadow .25s;
+}
+.feat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px var(--shadow-deep);
+}
+.feat-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 16px;
+}
+.feat-card h3 {
+  font-family: var(--ff-display);
+  font-size: 20px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.feat-card p { color: var(--text-soft); font-size: 14px; line-height: 1.6; }
+
+/* Quick stats */
+.quick-stats {
+  background: linear-gradient(135deg, var(--rose-light), var(--lav-light));
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 60px;
+  box-shadow: 0 4px 24px var(--shadow);
+}
+.qs-item { text-align: center; }
+.qs-val {
+  font-family: var(--ff-display);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--mauve-deep);
+  line-height: 1;
+}
+.qs-lbl { font-size: 13px; color: var(--text-soft); margin-top: 4px; font-weight: 600; }
+
+/* Agenda rápida hoy */
+.today-section { margin-bottom: 60px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.section-title {
+  font-family: var(--ff-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cita-home-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  transition: all .2s;
+  cursor: pointer;
+}
+.cita-home-card:hover {
+  box-shadow: 0 4px 20px var(--shadow);
+  transform: translateX(4px);
+}
+.cita-home-card.conflict { border-color: #fbbf24; background: linear-gradient(90deg, #fff9ed, #fff); }
+.chc-time {
+  font-family: var(--ff-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mauve-deep);
+  min-width: 100px;
+  text-align: center;
+  background: var(--rose-pale);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  line-height: 1.3;
+}
+.chc-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.chc-info strong { display: block; font-size: 14.5px; color: var(--text); }
+.chc-info span   { font-size: 12.5px; color: var(--text-muted); }
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<!-- HERO -->
+<section class="hero page">
+  <span class="deco d1">🌸</span>
+  <span class="deco d2">🌷</span>
+  <span class="deco d3">✨</span>
+  <span class="deco d4">🌺</span>
+  <span class="deco d5">💮</span>
+  <span class="deco d6">🌼</span>
+
+  <div class="hero-tag">🌸 Bienvenida de vuelta</div>
+  <h1>
+    Tu consultorio,
+    <em>tu bienestar</em>
+    <span class="sub-word">Agenda inteligente para psicólogas</span>
+  </h1>
+  <p class="hero-desc">
+    Gestiona tus citas, pacientes y múltiples consultorios en un solo lugar.
+    Detección automática de empalmes en tiempo real.
+  </p>
+  <div class="hero-btns">
+    <a href="nueva-cita.html" class="btn btn-primary">✨ Nueva cita</a>
+    <a href="agenda.html"     class="btn btn-secondary">📅 Ver agenda</a>
+  </div>
+</section>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="page" style="padding-top:0">
+  <div class="container">
+
+    <!-- Stats rápidas -->
+    <div class="quick-stats" id="quick-stats">
+      <div class="qs-item"><div class="qs-val" id="qs-hoy">—</div><div class="qs-lbl">Citas hoy</div></div>
+      <div class="qs-item"><div class="qs-val" id="qs-sem">—</div><div class="qs-lbl">Esta semana</div></div>
+      <div class="qs-item"><div class="qs-val" id="qs-pac">—</div><div class="qs-lbl">Pacientes activos</div></div>
+      <div class="qs-item"><div class="qs-val" id="qs-conf">—</div><div class="qs-lbl">Empalmes activos</div></div>
+    </div>
+
+    <!-- Conflictos del día -->
+    <div id="conflict-panel" style="display:none;margin-bottom:20px"></div>
+
+    <!-- Agenda de hoy -->
+    <div class="today-section">
+      <div class="section-header">
+        <h2 class="section-title">📅 Agenda de hoy</h2>
+        <a href="agenda.html" class="btn btn-secondary btn-sm">Ver todo →</a>
+      </div>
+      <div id="today-citas">
+        <div class="empty-state"><span class="ei">🌷</span><h3>Sin citas hoy</h3><p>¡Disfruta tu día!</p></div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="page-hero" style="margin-bottom:30px">
+        <div class="page-hero-tag">Funcionalidades</div>
+        <h2 style="font-family:var(--ff-display);font-size:32px;font-weight:700">Todo lo que necesitas 🌸</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feat-card">
+          <span class="feat-icon">⚠️</span>
+          <h3>Detección de empalmes</h3>
+          <p>Alerta automática en tiempo real cuando dos citas de diferentes consultorios se solapan en horario.</p>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🏥</span>
+          <h3>Múltiples consultorios</h3>
+          <p>Añade y gestiona todos tus lugares de trabajo con colores personalizados para identificarlos fácilmente.</p>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">📅</span>
+          <h3>Vista semanal</h3>
+          <p>Visualiza toda tu semana de un vistazo con un calendario intuitivo y colorido.</p>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">💗</span>
+          <h3>Expedientes</h3>
+          <p>Guarda la información de cada paciente, motivo de consulta e historial de citas.</p>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🔄</span>
+          <h3>Tiempo real</h3>
+          <p>Los cambios se sincronizan de inmediato. Abre en varias pestañas y todo se actualiza al instante.</p>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">💾</span>
+          <h3>Backup incluido</h3>
+          <p>Exporta tus datos y usa los procedimientos SQL para mantener copias de seguridad seguras.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+window.addEventListener('psicosoft:ready', () => {
+  const hoy = Utils.today();
+  const citas = Store.getCitas();
+  const pacientes = Store.getPacientes();
+  const consultorios = Store.getConsultorios();
+  const semDates = Utils.weekDates(new Date());
+
+  // Stats
+  const citasHoy = citas.filter(c => c.fecha === hoy && c.estado !== 'Cancelada');
+  const citasSem = citas.filter(c => semDates.includes(c.fecha) && c.estado !== 'Cancelada');
+  const pacActivos = pacientes.filter(p => p.activo);
+
+  // Importar detector
+  const conflicts = [];
+  const activas = citas.filter(c => c.estado !== 'Cancelada');
+  for (let i = 0; i < activas.length; i++)
+    for (let j = i+1; j < activas.length; j++) {
+      const a = activas[i], b = activas[j];
+      if (a.fecha === b.fecha) {
+        const aS = parseInt(a.horaInicio.replace(':',''));
+        const aE = parseInt(a.horaFin.replace(':',''));
+        const bS = parseInt(b.horaInicio.replace(':',''));
+        const bE = parseInt(b.horaFin.replace(':',''));
+        if (aS < bE && bS < aE) conflicts.push({a,b});
+      }
+    }
+
+  document.getElementById('qs-hoy').textContent = citasHoy.length;
+  document.getElementById('qs-sem').textContent = citasSem.length;
+  document.getElementById('qs-pac').textContent = pacActivos.length;
+  document.getElementById('qs-conf').textContent = conflicts.length;
+
+  // Panel de conflictos
+  if (conflicts.length > 0) {
+    const panel = document.getElementById('conflict-panel');
+    panel.style.display = 'block';
+    const items = conflicts.map(({a,b}) => {
+      const cA = consultorios.find(c=>c.id===a.consultoId);
+      const cB = consultorios.find(c=>c.id===b.consultoId);
+      const pA = pacientes.find(p=>p.id===a.pacienteId);
+      const pB = pacientes.find(p=>p.id===b.pacienteId);
+      return `<li>${pA?.nombre||'?'} (${cA?.nombre||'?'}) vs ${pB?.nombre||'?'} (${cB?.nombre||'?'}) — ${a.fecha} ${a.horaInicio}–${a.horaFin}</li>`;
+    }).join('');
+    panel.innerHTML = `<div class="conflict-banner">
+      <span class="ci">⚠️</span>
+      <div><strong>${conflicts.length} empalme(s) detectado(s)</strong>
+        <ul style="padding-left:16px;margin-top:4px;font-size:13px">${items}</ul>
+        <a href="agenda.html" style="font-size:13px;color:var(--mauve-deep);font-weight:700;margin-top:8px;display:inline-block">
+          Ver en agenda →
+        </a>
+      </div>
+    </div>`;
+  }
+
+  // Citas de hoy
+  const cont = document.getElementById('today-citas');
+  if (citasHoy.length === 0) {
+    cont.innerHTML = `<div class="empty-state"><span class="ei">🌷</span><h3>Sin citas hoy</h3><p>¡Un buen día para descansar! 🌸</p></div>`;
+  } else {
+    citasHoy.sort((a,b)=>a.horaInicio.localeCompare(b.horaInicio));
+    const conflictIds = new Set(conflicts.flatMap(({a,b})=>[a.id,b.id]));
+    cont.innerHTML = citasHoy.map(cita => {
+      const cons = consultorios.find(c=>c.id===cita.consultoId);
+      const pac  = pacientes.find(p=>p.id===cita.pacienteId);
+      const isC  = conflictIds.has(cita.id);
+      return `<a href="agenda.html" class="cita-home-card${isC?' conflict':''}">
+        <div class="chc-time">
+          ${Utils.fmt12(cita.horaInicio)}<br><small style="font-size:11px">—</small><br>${Utils.fmt12(cita.horaFin)}
+        </div>
+        <div class="chc-dot" style="background:${cons?.color||'#f9a8c9'}"></div>
+        <div class="chc-info">
+          <strong>${pac?.nombre||'Paciente'}</strong>
+          <span>${cons?.nombre||''} · ${cita.tipo}</span>
+          ${isC?'<br><span style="color:#8a6500;font-size:12px;font-weight:700">⚠️ Empalme detectado</span>':''}
+        </div>
+        <span style="color:var(--text-muted);margin-left:auto">→</span>
+      </a>`;
+    }).join('');
+  }
+});
+</script>
+</body>
+</html>

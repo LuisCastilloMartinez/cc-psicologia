@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Cita — PsicoSoft</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.nueva-cita-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Tarjeta de validación en vivo */
+.live-check {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  position: sticky;
+  top: calc(var(--nav-h) + 20px);
+  box-shadow: 0 4px 20px var(--shadow);
+}
+.live-check h3 {
+  font-family: var(--ff-display);
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+.live-check .lc-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.lc-ok   { background: var(--mint-light); color: #1a7a54; }
+.lc-warn { background: #fff3cd;          color: #8a6500; }
+.lc-idle { background: var(--rose-pale); color: var(--text-muted); }
+
+/* Mini calendario de citas del mismo día */
+.same-day-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--rose-pale);
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+.same-day-item .work-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Tipo de cita chips */
+.type-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.type-chip {
+  padding: 7px 16px;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--border);
+  background: var(--rose-pale);
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.type-chip:hover { border-color: var(--rose); color: var(--rose-deep); }
+.type-chip.sel   { background: var(--rose-light); border-color: var(--rose); color: var(--rose-deep); }
+
+/* Resumen antes de guardar */
+.resumen {
+  background: linear-gradient(135deg, var(--rose-light), var(--lav-light));
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-top: 16px;
+  display: none;
+}
+.resumen h4 {
+  font-family: var(--ff-display);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.res-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(240,212,228,.4);
+}
+.res-row:last-child { border-bottom: none; }
+.res-lbl { color: var(--text-muted); }
+.res-val { font-weight: 700; color: var(--text); }
+
+/* Éxito */
+.success-state {
+  text-align: center;
+  padding: 48px 24px;
+  display: none;
+}
+.success-state .si { font-size: 64px; animation: float 2s ease-in-out infinite; display: block; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html" class="active"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<main class="page">
+  <div class="container-sm" id="main-form-wrap">
+    <div class="page-hero">
+      <div class="page-hero-tag">✨ Programar</div>
+      <h1>Nueva <em>cita</em></h1>
+      <p>Detección de empalmes <strong>en tiempo real</strong> mientras llenas el formulario.</p>
+    </div>
+
+    <!-- Estado éxito -->
+    <div class="success-state" id="success-state">
+      <span class="si">🌸</span>
+      <h2 style="font-family:var(--ff-display);font-size:28px;margin-bottom:8px">¡Cita programada!</h2>
+      <p style="color:var(--text-muted);margin-bottom:28px">La cita se guardó correctamente en tu agenda.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="agenda.html" class="btn btn-primary">📅 Ver en agenda</a>
+        <button class="btn btn-secondary" onclick="NuevaCita.reset()">✨ Nueva cita</button>
+      </div>
+    </div>
+
+    <!-- Formulario -->
+    <div id="form-wrap">
+      <div class="nueva-cita-layout">
+        <!-- Formulario izquierdo -->
+        <div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-title" style="margin-bottom:4px">📋 Datos de la cita</div>
+            <p class="card-sub">Todos los campos marcados con * son obligatorios.</p>
+
+            <div class="form-grid">
+              <div class="field form-full">
+                <label>Paciente *</label>
+                <select id="f-pac" onchange="NuevaCita.onFieldChange()">
+                  <option value="">Seleccionar paciente...</option>
+                </select>
+              </div>
+              <div class="field form-full">
+                <label>Consultorio *</label>
+                <select id="f-cons" onchange="NuevaCita.onFieldChange()">
+                  <option value="">Seleccionar consultorio...</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Fecha *</label>
+                <input type="date" id="f-fecha" onchange="NuevaCita.onFieldChange()">
+              </div>
+              <div class="field">
+                <label></label>
+                <!-- espacio -->
+              </div>
+              <div class="field">
+                <label>Hora de inicio *</label>
+                <input type="time" id="f-inicio" min="06:00" max="22:00" step="300" onchange="NuevaCita.onFieldChange()">
+              </div>
+              <div class="field">
+                <label>Hora de fin *</label>
+                <input type="time" id="f-fin" min="06:00" max="22:00" step="300" onchange="NuevaCita.onFieldChange()">
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-title" style="margin-bottom:16px">🎯 Tipo de sesión</div>
+            <div class="type-chips" id="type-chips">
+              <div class="type-chip sel" onclick="NuevaCita.setTipo(this,'Individual')">👤 Individual</div>
+              <div class="type-chip" onclick="NuevaCita.setTipo(this,'Pareja')">👫 Pareja</div>
+              <div class="type-chip" onclick="NuevaCita.setTipo(this,'Familiar')">👨‍👩‍👧 Familiar</div>
+              <div class="type-chip" onclick="NuevaCita.setTipo(this,'Grupal')">👥 Grupal</div>
+              <div class="type-chip" onclick="NuevaCita.setTipo(this,'Evaluación')">📝 Evaluación</div>
+              <div class="type-chip" onclick="NuevaCita.setTipo(this,'Seguimiento')">🔄 Seguimiento</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">📝 Notas</div>
+            <div class="form-grid">
+              <div class="field form-full">
+                <label>Notas de la sesión</label>
+                <textarea id="f-notas" placeholder="Temas a tratar, recordatorios..." rows="3"></textarea>
+              </div>
+              <div class="field">
+                <label>Estado</label>
+                <select id="f-estado">
+                  <option value="Confirmada">✅ Confirmada</option>
+                  <option value="Pendiente">⏳ Pendiente</option>
+                  <option value="Lista de espera">📋 Lista de espera</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Resumen -->
+            <div class="resumen" id="resumen"></div>
+
+            <div class="btn-row">
+              <a href="agenda.html" class="btn btn-ghost">Cancelar</a>
+              <button class="btn btn-primary" id="btn-save" onclick="NuevaCita.save()">
+                ✨ Guardar cita
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar derecho — verificación en vivo -->
+        <div class="live-check">
+          <h3>🔍 Verificación en vivo</h3>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+            Se actualiza mientras completas el formulario.
+          </p>
+
+          <div class="lc-status lc-idle" id="lc-status">
+            ⏳ Completa el formulario...
+          </div>
+
+          <div id="conflict-validation"></div>
+
+          <div class="divider"></div>
+
+          <h4 style="font-size:13px;font-weight:700;color:var(--text-soft);margin-bottom:8px">
+            📅 Citas del mismo día
+          </h4>
+          <div id="same-day-list">
+            <p style="font-size:12.5px;color:var(--text-muted)">Selecciona una fecha y consultorio.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script src="agenda.js"></script>
+<script>
+const NuevaCita = {
+  tipo: 'Individual',
+  editId: null,
+
+  init() {
+    // Pre-llenar selectores
+    this.fillSelects();
+
+    // Fecha por defecto: hoy
+    document.getElementById('f-fecha').value = Utils.today();
+
+    // Leer params de URL
+    const params = new URLSearchParams(location.search);
+    if (params.get('fecha')) document.getElementById('f-fecha').value = params.get('fecha');
+    if (params.get('hora'))  document.getElementById('f-inicio').value = params.get('hora');
+    if (params.get('paciente')) document.getElementById('f-pac').value = params.get('paciente');
+
+    if (params.get('edit')) {
+      this.editId = params.get('edit');
+      this.loadEdit();
+    }
+
+    this.onFieldChange();
+    Store.on('citas', () => this.onFieldChange());
+  },
+
+  fillSelects() {
+    const ps  = Store.getPacientes().filter(p=>p.activo);
+    const cs  = Store.getConsultorios().filter(c=>c.activo);
+    document.getElementById('f-pac').innerHTML =
+      `<option value="">Seleccionar paciente...</option>` +
+      ps.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+    document.getElementById('f-cons').innerHTML =
+      `<option value="">Seleccionar consultorio...</option>` +
+      cs.map(c=>`<option value="${c.id}">${c.nombre} (${c.horario||'Sin horario'})</option>`).join('');
+  },
+
+  loadEdit() {
+    const cita = Store.getCitas().find(c=>c.id===this.editId);
+    if (!cita) return;
+    document.getElementById('f-pac').value    = cita.pacienteId  || '';
+    document.getElementById('f-cons').value   = cita.consultoId  || '';
+    document.getElementById('f-fecha').value  = cita.fecha       || '';
+    document.getElementById('f-inicio').value = cita.horaInicio  || '';
+    document.getElementById('f-fin').value    = cita.horaFin     || '';
+    document.getElementById('f-notas').value  = cita.notas       || '';
+    document.getElementById('f-estado').value = cita.estado      || 'Confirmada';
+    this.tipo = cita.tipo || 'Individual';
+    document.querySelectorAll('.type-chip').forEach(c => {
+      c.classList.toggle('sel', c.textContent.includes(this.tipo));
+    });
+    document.querySelector('.page-hero h1').innerHTML = 'Editar <em>cita</em>';
+  },
+
+  setTipo(el, tipo) {
+    this.tipo = tipo;
+    document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+  },
+
+  onFieldChange() {
+    const fecha    = document.getElementById('f-fecha');
+    const inicio   = document.getElementById('f-inicio');
+    const fin      = document.getElementById('f-fin');
+    const consultoId = document.getElementById('f-cons');
+    const status   = document.getElementById('lc-status');
+
+    // Validar con CitaValidator
+    CitaValidator.validate(
+      { fecha, horaInicio: inicio, horaFin: fin, consultoId, citaId: this.editId },
+      'conflict-validation'
+    );
+
+    // Status badge
+    if (!fecha.value || !inicio.value || !fin.value || !consultoId.value) {
+      status.className = 'lc-status lc-idle';
+      status.textContent = '⏳ Completa los campos requeridos...';
+    } else {
+      const nuevaCita = {
+        id: this.editId || '__new__',
+        fecha: fecha.value, horaInicio: inicio.value, horaFin: fin.value,
+        consultoId: consultoId.value, estado: 'Confirmada',
+      };
+      const conflicts = ConflictDetector.checkNew(nuevaCita, Store.getCitas());
+      if (conflicts.length) {
+        status.className = 'lc-status lc-warn';
+        status.textContent = `⚠️ ${conflicts.length} empalme(s) detectado(s)`;
+      } else {
+        status.className = 'lc-status lc-ok';
+        status.textContent = '✅ Horario disponible';
+      }
+    }
+
+    // Citas del mismo día
+    this.renderSameDay(fecha.value, consultoId.value);
+
+    // Resumen
+    this.renderResumen();
+  },
+
+  renderSameDay(fecha, consultoId) {
+    const el = document.getElementById('same-day-list');
+    if (!fecha) { el.innerHTML = '<p style="font-size:12.5px;color:var(--text-muted)">Selecciona una fecha.</p>'; return; }
+
+    const citas = Store.getCitas()
+      .filter(c => c.fecha === fecha && c.estado !== 'Cancelada' && c.id !== this.editId)
+      .sort((a,b) => a.horaInicio.localeCompare(b.horaInicio));
+
+    if (!citas.length) {
+      el.innerHTML = '<p style="font-size:12.5px;color:var(--text-muted)">Sin citas ese día 🌸</p>';
+      return;
+    }
+
+    const cs = Store.getConsultorios();
+    const ps = Store.getPacientes();
+    el.innerHTML = citas.map(c => {
+      const co = cs.find(x=>x.id===c.consultoId);
+      const pa = ps.find(x=>x.id===c.pacienteId);
+      return `<div class="same-day-item">
+        <div class="work-dot" style="background:${co?.color||'#f9a8c9'}"></div>
+        <div style="flex:1">
+          <strong style="display:block">${Utils.fmt12(c.horaInicio)}–${Utils.fmt12(c.horaFin)}</strong>
+          <span style="color:var(--text-muted)">${pa?.nombre||'?'} · ${co?.nombre||'?'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  renderResumen() {
+    const pac   = document.getElementById('f-pac');
+    const cons  = document.getElementById('f-cons');
+    const fecha = document.getElementById('f-fecha');
+    const ini   = document.getElementById('f-inicio');
+    const fin   = document.getElementById('f-fin');
+    const res   = document.getElementById('resumen');
+
+    if (!pac.value || !cons.value || !fecha.value || !ini.value || !fin.value) {
+      res.style.display = 'none'; return;
+    }
+
+    const pacNom  = pac.options[pac.selectedIndex].text;
+    const consNom = cons.options[cons.selectedIndex].text;
+
+    res.style.display = 'block';
+    res.innerHTML = `<h4>📋 Resumen de la cita</h4>
+      <div class="res-row"><span class="res-lbl">Paciente</span><span class="res-val">${pacNom}</span></div>
+      <div class="res-row"><span class="res-lbl">Consultorio</span><span class="res-val">${consNom.split('(')[0].trim()}</span></div>
+      <div class="res-row"><span class="res-lbl">Fecha</span><span class="res-val">${Utils.fmtDate(fecha.value)}</span></div>
+      <div class="res-row"><span class="res-lbl">Horario</span><span class="res-val">${Utils.fmt12(ini.value)} — ${Utils.fmt12(fin.value)}</span></div>
+      <div class="res-row"><span class="res-lbl">Tipo</span><span class="res-val">${this.tipo}</span></div>`;
+  },
+
+  save() {
+    const pac   = document.getElementById('f-pac').value;
+    const cons  = document.getElementById('f-cons').value;
+    const fecha = document.getElementById('f-fecha').value;
+    const ini   = document.getElementById('f-inicio').value;
+    const fin   = document.getElementById('f-fin').value;
+
+    if (!pac || !cons || !fecha || !ini || !fin) {
+      toast('Completa todos los campos requeridos', 'error', '💔');
+      return;
+    }
+    if (Utils.toMinutes(ini) >= Utils.toMinutes(fin)) {
+      toast('La hora de fin debe ser posterior a la de inicio', 'error', '⏰');
+      return;
+    }
+
+    const datos = {
+      pacienteId: pac, consultoId: cons, fecha, horaInicio: ini, horaFin: fin,
+      tipo:   this.tipo,
+      notas:  document.getElementById('f-notas').value.trim(),
+      estado: document.getElementById('f-estado').value,
+    };
+
+    // Revisar conflictos
+    const existentes = Store.getCitas();
+    const nuevaCita  = { ...datos, id: this.editId || '__new__' };
+    const conflicts  = ConflictDetector.checkNew(nuevaCita, existentes);
+
+    if (conflicts.length) {
+      const ok = confirm(`⚠️ Se detectaron ${conflicts.length} empalme(s) con otras citas.\n¿Deseas guardar de todos modos?`);
+      if (!ok) return;
+    }
+
+    if (this.editId) {
+      Store.updateCita(this.editId, datos);
+    } else {
+      Store.addCita(datos);
+    }
+
+    // Mostrar éxito
+    document.getElementById('form-wrap').style.display = 'none';
+    document.getElementById('success-state').style.display = 'block';
+    toast('Cita guardada exitosamente 🌸', 'success');
+  },
+
+  reset() {
+    document.getElementById('form-wrap').style.display = 'block';
+    document.getElementById('success-state').style.display = 'none';
+    this.editId = null;
+    ['f-pac','f-cons','f-inicio','f-fin','f-notas'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('f-fecha').value  = Utils.today();
+    document.getElementById('f-estado').value = 'Confirmada';
+    this.tipo = 'Individual';
+    document.querySelectorAll('.type-chip').forEach((c,i) => c.classList.toggle('sel', i===0));
+    document.getElementById('resumen').style.display = 'none';
+    this.onFieldChange();
+  },
+};
+
+window.addEventListener('psicosoft:ready', () => NuevaCitaPage.init());
+</script>
+</body>
+</html>

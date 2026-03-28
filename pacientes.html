@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacientes — PsicoSoft</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.pacientes-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Filtro sidebar */
+.filter-card { position: sticky; top: calc(var(--nav-h) + 20px); }
+
+/* Tarjeta paciente */
+.pac-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.pac-card:hover {
+  box-shadow: 0 6px 24px var(--shadow-deep);
+  transform: translateX(4px);
+}
+.pac-avatar {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.pac-name { font-family: var(--ff-display); font-size: 16px; font-weight: 700; color: var(--text); }
+.pac-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+.pac-consultorios {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;
+}
+.pac-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+
+/* Buscador */
+.search-wrap {
+  position: relative;
+}
+.search-wrap input {
+  padding-left: 38px !important;
+}
+.search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* Avatar colores */
+.av-rose   { background: var(--rose-light);  }
+.av-mint   { background: var(--mint-light);  }
+.av-lav    { background: var(--lav-light);   }
+.av-sand   { background: var(--sand);        }
+
+/* Modal detalle paciente */
+.hist-cita {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--rose-pale);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.hist-cita .work-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.pac-form-datos-op { margin-top: 8px; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 12px 12px; background: var(--rose-pale); }
+.pac-form-datos-op summary { cursor: pointer; font-weight: 700; font-size: 13px; padding: 10px 0; color: var(--text-soft); }
+.pac-form-datos-op[open] summary { margin-bottom: 8px; }
+#p-consultorio-hint { font-size: 12px; color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; padding: 10px 12px; border-radius: 8px; margin-top: 8px; }
+#p-consultorio-hint a { color: var(--rose-deep); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html" class="active"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<!-- MODAL NUEVO / EDITAR PACIENTE -->
+<div class="modal-overlay" id="modal-paciente">
+  <div class="modal" role="dialog" aria-labelledby="mpac-title">
+    <form id="form-paciente" novalidate>
+      <button type="button" class="modal-close" aria-label="Cerrar">✕</button>
+      <h2 id="mpac-title">💗 Nuevo Paciente</h2>
+      <p class="sub" id="mpac-sub">Completa los datos y el consultorio. Los campos con * son obligatorios.</p>
+
+      <div class="form-grid">
+        <div class="field form-full">
+          <label for="p-nombre">Nombre completo *</label>
+          <input type="text" id="p-nombre" name="nombre" required autocomplete="name" placeholder="Nombre y apellidos">
+        </div>
+        <div class="field">
+          <label for="p-edad">Edad</label>
+          <input type="number" id="p-edad" name="edad" placeholder="Ej. 32" min="1" max="120">
+        </div>
+        <div class="field">
+          <label for="p-fecha-registro">Fecha de registro *</label>
+          <input type="date" id="p-fecha-registro" name="fecha_registro" required>
+        </div>
+        <div class="field form-full">
+          <label for="p-consultorio-select">Consultorio *</label>
+          <select id="p-consultorio-select" name="consultorio_id" aria-describedby="p-consultorio-hint">
+            <option value="">— Cargando consultorios… —</option>
+          </select>
+          <div id="p-consultorio-hint" style="display:none">
+            No hay consultorios activos. <a href="consultorios.html">Crea uno en Consultorios</a> y vuelve aquí.
+          </div>
+        </div>
+
+        <details class="pac-form-datos-op form-full">
+          <summary>Más datos (opcional)</summary>
+          <div class="form-grid" style="margin-top:4px">
+            <div class="field">
+              <label for="p-tel">Teléfono</label>
+              <input type="tel" id="p-tel" placeholder="618-000-0000">
+            </div>
+            <div class="field">
+              <label for="p-email">Email</label>
+              <input type="email" id="p-email" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="field form-full">
+              <label for="p-fecha">Fecha de nacimiento</label>
+              <input type="date" id="p-fecha">
+            </div>
+            <div class="field form-full">
+              <label for="p-motivo">Motivo de consulta</label>
+              <textarea id="p-motivo" placeholder="Ansiedad, depresión, terapia de pareja…"></textarea>
+            </div>
+            <div class="field form-full">
+              <label for="p-notas">Notas adicionales</label>
+              <textarea id="p-notas" placeholder="Alergias, medicamentos…"></textarea>
+            </div>
+          </div>
+        </details>
+
+        <div class="field form-full lfpdppp-box" style="background:#fff1f2;padding:12px;border:1px solid #fecdd3;border-radius:8px;margin-top:10px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin:0;">
+            <input type="checkbox" id="p-consentimiento" style="margin-top:3px;accent-color:var(--rose)">
+            <span style="font-size:12px;font-weight:600;color:var(--text-soft);line-height:1.4">
+              Confirmo que el paciente ha otorgado su consentimiento expreso (LFPDPPP Art. 9) para el tratamiento de sus datos personales sensibles y clínicos.
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" id="btn-pac-cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-pac-guardar">💾 Crear paciente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PACIENTE -->
+<div class="modal-overlay" id="modal-detalle-pac">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <div id="detail-pac-body"></div>
+    <div class="btn-row" style="flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="PacientesPage.editCurrent()">✏️ Editar expediente</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="PacientesPage.newCitaForCurrent()">✨ Nueva cita</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="PacientesPage.confirmDeleteCurrent()">🗑 Desactivar expediente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmar desactivar paciente (soft delete, datos retenidos por normativa) -->
+<div class="modal-overlay" id="modal-delete-pac">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <button type="button" class="modal-close">✕</button>
+    <div style="font-size:52px;margin-bottom:12px">💗</div>
+    <h2>¿Desactivar expediente?</h2>
+    <p class="sub" style="text-align:left">El paciente dejará de mostrarse en la lista activa. Los datos clínicos se conservan en el sistema según la normativa aplicable (NOM-004). Podrás gestionar el archivo desde respaldos o soporte si lo requieres.</p>
+    <div class="btn-row" style="justify-content:center">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-delete-pac')">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="btn-confirm-delete-pac">Sí, desactivar</button>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <div class="container">
+    <div class="page-hero" style="text-align:left;margin-bottom:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="page-hero-tag">💗 Expedientes</div>
+          <h1 style="font-family:var(--ff-display);font-size:30px;margin-top:6px">
+            Mis <em style="color:var(--rose-deep)">Pacientes</em>
+          </h1>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-nuevo-paciente">💗 Nuevo paciente</button>
+      </div>
+    </div>
+
+    <div class="stats-strip" style="margin-bottom:28px" id="pac-stats"></div>
+
+    <div class="pacientes-layout">
+      <!-- Filtros -->
+      <div class="filter-card card">
+        <div class="card-title" style="margin-bottom:16px">🔍 Filtrar</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Buscar</label>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-pac" placeholder="Nombre, motivo..." oninput="PacientesPage.render()">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Consultorio</label>
+          <select id="filter-cons" onchange="PacientesPage.render()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <select id="filter-activo" onchange="PacientesPage.render()">
+            <option value="">Todos</option>
+            <option value="true">Activos</option>
+            <option value="false">Inactivos</option>
+          </select>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:12px;color:var(--text-muted)">
+          Mostrando <strong id="pac-count">0</strong> paciente(s)
+        </p>
+      </div>
+
+      <!-- Lista -->
+      <div id="pac-list"></div>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+const AVATAR_COLORS = ['av-rose','av-mint','av-lav','av-sand'];
+const INITIALS_EMOJI = ['🌸','🌷','💗','🌺','🌼','💮','✿','🌻'];
+
+const PacientesPage = {
+  editId: null,
+  currentId: null,
+  deleteTargetId: null,
+
+  init() {
+    const btnNuevo = document.getElementById('btn-nuevo-paciente');
+    if (btnNuevo) btnNuevo.addEventListener('click', () => this.openNew());
+    const form = document.getElementById('form-paciente');
+    if (form) form.addEventListener('submit', (e) => { e.preventDefault(); this.save(); });
+    const btnCan = document.getElementById('btn-pac-cancelar');
+    if (btnCan) btnCan.addEventListener('click', () => closeModal('modal-paciente'));
+
+    this.render();
+    this.renderStats();
+    this.fillConsFilter();
+    Store.on('pacientes',    () => { this.render(); this.renderStats(); });
+    Store.on('consultorios', () => { this.fillConsFilter(); });
+  },
+
+  renderStats() {
+    const ps = Store.getPacientes();
+    const activos = ps.filter(p=>p.activo).length;
+    const citas   = Store.getCitas().filter(c=>c.estado!=='Cancelada').length;
+    const hoy     = Store.getCitas().filter(c=>c.fecha===Utils.today()&&c.estado!=='Cancelada').length;
+    document.getElementById('pac-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon si-rose">💗</div>
+        <div><div class="stat-val">${ps.length}</div><div class="stat-lbl">Total pacientes</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-mint">✅</div>
+        <div><div class="stat-val">${activos}</div><div class="stat-lbl">Activos</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-lav">📅</div>
+        <div><div class="stat-val">${citas}</div><div class="stat-lbl">Total citas</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-sand">🌟</div>
+        <div><div class="stat-val">${hoy}</div><div class="stat-lbl">Citas hoy</div></div></div>`;
+  },
+
+  fillConsFilter() {
+    const sel = document.getElementById('filter-cons');
+    const cs  = Store.getConsultorios();
+    sel.innerHTML = `<option value="">Todos los consultorios</option>` +
+      cs.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  },
+
+  render() {
+    let ps = Store.getPacientes();
+    const q     = document.getElementById('search-pac')?.value.toLowerCase() || '';
+    const cons  = document.getElementById('filter-cons')?.value || '';
+    const actv  = document.getElementById('filter-activo')?.value || '';
+
+    if (q)    ps = ps.filter(p => (p.nombre+' '+(p.motivo||'')).toLowerCase().includes(q));
+    if (cons) {
+      const cid = Number(cons);
+      ps = ps.filter(p => (p.consultorios||[]).some(x => Number(x) === cid));
+    }
+    if (actv) ps = ps.filter(p => String(p.activo) === actv);
+
+    document.getElementById('pac-count').textContent = ps.length;
+
+    const cont = document.getElementById('pac-list');
+    if (!ps.length) {
+      cont.innerHTML = `<div class="empty-state card"><span class="ei">💗</span><h3>Sin pacientes</h3><p>Añade tu primer paciente.</p></div>`;
+      return;
+    }
+
+    const consultorios = Store.getConsultorios();
+    cont.innerHTML = ps.map((p, i) => {
+      const av   = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      const icon = INITIALS_EMOJI[i % INITIALS_EMOJI.length];
+      const consHtml = (p.consultorios||[]).map(cid => {
+        const c = consultorios.find(x => Number(x.id) === Number(cid));
+        return c ? `<span class="work-dot" style="background:${c.color};width:10px;height:10px;display:inline-block;border-radius:50%" title="${c.nombre}"></span>` : '';
+      }).join('');
+
+      return `<div class="pac-card" onclick="PacientesPage.openDetail('${p.id}')">
+        <div class="pac-avatar ${av}">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="pac-name">${p.nombre}</div>
+          <div class="pac-meta">${p.edad?p.edad+' años · ':''}${p.telefono||''}</div>
+          ${p.motivo?`<div style="font-size:12px;color:var(--text-muted);margin-top:3px">${p.motivo.slice(0,60)}${p.motivo.length>60?'…':''}</div>`:''}
+          <div class="pac-consultorios">${consHtml}</div>
+        </div>
+        <div class="pac-actions">
+          <span class="badge ${p.activo?'badge-mint':'badge-sand'}">${p.activo?'Activo':'Inactivo'}</span>
+          <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="event.stopPropagation();PacientesPage.openEdit('${p.id}')">✏️</button>
+          <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Desactivar expediente" onclick="event.stopPropagation();PacientesPage.confirmDelete('${p.id}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  _consultoriosActivos() {
+    return Store.getConsultorios().filter(c => Number(c.activo) !== 0);
+  },
+
+  renderConsultorioSelect(preferredId, forEdit) {
+    const sel = document.getElementById('p-consultorio-select');
+    const hint = document.getElementById('p-consultorio-hint');
+    const cs = (forEdit ? Store.getConsultorios() : this._consultoriosActivos()) || [];
+    if (!cs.length) {
+      sel.innerHTML = '<option value="">— Sin consultorios —</option>';
+      sel.disabled = true;
+      sel.required = false;
+      if (hint) hint.style.display = 'block';
+      return;
+    }
+    sel.disabled = false;
+    if (hint) hint.style.display = 'none';
+    sel.innerHTML = '<option value="">— Selecciona un consultorio —</option>' +
+      cs.map(c => {
+        const inact = Number(c.activo) === 0;
+        const lab = String(c.nombre).replace(/</g, '&lt;') + (inact ? ' (inactivo)' : '');
+        return `<option value="${c.id}">${lab}</option>`;
+      }).join('');
+    const pref = preferredId != null && preferredId !== '' ? Number(preferredId) : NaN;
+    if (!Number.isNaN(pref) && cs.some(c => Number(c.id) === pref)) sel.value = String(pref);
+    else if (!forEdit && cs.length === 1 && Number(cs[0].activo) !== 0) {
+      sel.value = String(cs[0].id);
+    } else sel.value = '';
+    sel.required = true;
+  },
+
+  openNew() {
+    this.editId = null;
+    document.getElementById('mpac-title').textContent = '💗 Nuevo Paciente';
+    document.getElementById('mpac-sub').textContent = 'Indica nombre, edad, fecha de registro y el consultorio.';
+    document.getElementById('btn-pac-guardar').textContent = '💾 Crear paciente';
+    document.getElementById('form-paciente').reset();
+    document.getElementById('p-fecha-registro').value = Utils.today();
+    document.getElementById('p-consentimiento').checked = false;
+    document.querySelector('.lfpdppp-box').style.display = 'block';
+    const det = document.querySelector('.pac-form-datos-op');
+    if (det) det.open = false;
+    this.renderConsultorioSelect(null);
+    openModal('modal-paciente');
+    setTimeout(() => document.getElementById('p-nombre')?.focus(), 100);
+  },
+
+  openEdit(id) {
+    const pid = Number(id);
+    this.editId = pid;
+    const p = Store.getPacientes().find(x => Number(x.id) === pid);
+    if (!p) return;
+    document.getElementById('mpac-title').textContent = '✏️ Editar Paciente';
+    document.getElementById('mpac-sub').textContent = 'Modifica los datos del expediente.';
+    document.getElementById('btn-pac-guardar').textContent = '💾 Guardar cambios';
+    document.getElementById('p-nombre').value = p.nombre||'';
+    document.getElementById('p-edad').value   = p.edad||'';
+    document.getElementById('p-tel').value    = p.telefono||'';
+    document.getElementById('p-email').value  = p.email||'';
+    document.getElementById('p-fecha').value  = p.fechaNac||'';
+    const fr = p.fechaRegistro || (p.created_at && String(p.created_at).slice(0, 10)) || '';
+    document.getElementById('p-fecha-registro').value = fr || Utils.today();
+    document.getElementById('p-motivo').value = p.motivo||'';
+    document.getElementById('p-notas').value  = p.notas||'';
+    document.getElementById('p-consentimiento').checked = !!p.consentimiento;
+    document.querySelector('.lfpdppp-box').style.display = 'none';
+    const firstCons = (p.consultorios && p.consultorios.length) ? p.consultorios[0] : null;
+    this.renderConsultorioSelect(firstCons, true);
+    openModal('modal-paciente');
+  },
+
+  save() {
+    const nombre = document.getElementById('p-nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio', 'error', '💔'); return; }
+
+    if (!this.editId && !document.getElementById('p-consentimiento').checked) {
+      toast('Debes aceptar el consentimiento LFPDPPP', 'error', '⚠️');
+      return;
+    }
+
+    const fechaReg = document.getElementById('p-fecha-registro').value.trim();
+    if (!fechaReg) {
+      toast('Indica la fecha de registro', 'error', '📅');
+      return;
+    }
+
+    const cSel = document.getElementById('p-consultorio-select');
+    if (!cSel.value) {
+      toast(
+        Store.getConsultorios().length
+          ? 'Selecciona el consultorio del paciente'
+          : 'Primero crea un consultorio en la página Consultorios',
+        'error',
+        '🏥'
+      );
+      return;
+    }
+
+    const consIds = cSel.value ? [Number(cSel.value)] : [];
+    const data = {
+      nombre,
+      edad:      parseInt(document.getElementById('p-edad').value, 10),
+      telefono:  document.getElementById('p-tel').value.trim(),
+      email:     document.getElementById('p-email').value.trim(),
+      fechaNac:  document.getElementById('p-fecha').value,
+      fechaRegistro: fechaReg,
+      motivo:    document.getElementById('p-motivo').value.trim(),
+      notas:     document.getElementById('p-notas').value.trim(),
+      consultorios: consIds,
+      consentimiento: document.getElementById('p-consentimiento').checked,
+      activo: true,
+    };
+    if (Number.isNaN(data.edad) || data.edad < 1) data.edad = null;
+    (async () => {
+      try {
+        if (this.editId != null) {
+          await Store.updatePaciente(Number(this.editId), data);
+          toast('Paciente actualizado 🌸', 'success');
+        } else {
+          await Store.addPaciente(data);
+          toast('Paciente registrado 🌸', 'success');
+        }
+        closeModal('modal-paciente');
+      } catch (e) {
+        /* toast ya lo muestra app.js en errores de API */
+      }
+    })();
+  },
+
+  openDetail(id) {
+    const pid = Number(id);
+    this.currentId = pid;
+    const p    = Store.getPacientes().find(x => Number(x.id) === pid);
+    if (!p) return;
+    const cs   = Store.getConsultorios();
+    const cts  = Store.getCitas().filter(c => Number(c.pacienteId) === pid && c.estado !== 'Cancelada')
+                      .sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,5);
+
+    const consDots = (p.consultorios||[]).map(cid=>{
+      const c = cs.find(x => Number(x.id) === Number(cid));
+      return c?`<span class="badge" style="background:${c.color}22;color:${c.color};border-color:${c.color}44">${c.nombre}</span>`:'';
+    }).join('');
+
+    const citasHtml = cts.length
+      ? cts.map(ct => {
+          const co = cs.find(c => Number(c.id) === Number(ct.consultoId));
+          return `<div class="hist-cita">
+            <div class="work-dot" style="background:${co?.color||'#f9a8c9'}"></div>
+            <div><strong style="font-size:13px">${Utils.fmtDate(ct.fecha)}</strong>
+              <span style="display:block;font-size:11.5px;color:var(--text-muted)">${Utils.fmt12(ct.horaInicio)}–${Utils.fmt12(ct.horaFin)} · ${co?.nombre||''} · ${ct.tipo}</span>
+            </div>
+          </div>`;
+        }).join('')
+      : '<p style="color:var(--text-muted);font-size:13px">Sin citas registradas.</p>';
+
+    document.getElementById('detail-pac-body').innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div class="pac-avatar av-rose" style="width:60px;height:60px;font-size:28px">🌸</div>
+        <div>
+          <h2 style="font-family:var(--ff-display);font-size:22px;color:var(--text)">${p.nombre}</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${consDots}</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      ${p.edad?`<div class="detail-row"><span class="dr-lbl">Edad</span><span class="dr-val">${p.edad} años</span></div>`:''}
+      ${p.fechaRegistro?`<div class="detail-row"><span class="dr-lbl">Fecha de registro</span><span class="dr-val">${Utils.fmtDateFull(p.fechaRegistro)}</span></div>`:''}
+      ${p.telefono?`<div class="detail-row"><span class="dr-lbl">Teléfono</span><span class="dr-val">${p.telefono}</span></div>`:''}
+      ${p.email?`<div class="detail-row"><span class="dr-lbl">Email</span><span class="dr-val">${p.email}</span></div>`:''}
+      ${p.motivo?`<div class="detail-row"><span class="dr-lbl">Motivo</span><span class="dr-val">${p.motivo}</span></div>`:''}
+      ${p.notas?`<div class="detail-row"><span class="dr-lbl">Notas</span><span class="dr-val">${p.notas}</span></div>`:''}
+      <div class="divider"></div>
+      <h3 style="font-family:var(--ff-display);font-size:16px;margin-bottom:10px">📅 Últimas citas</h3>
+      ${citasHtml}`;
+    openModal('modal-detalle-pac');
+  },
+
+  editCurrent() {
+    closeModal('modal-detalle-pac');
+    if (this.currentId) this.openEdit(this.currentId);
+  },
+  newCitaForCurrent() {
+    closeModal('modal-detalle-pac');
+    window.location.href = `nueva-cita.html?paciente=${this.currentId}`;
+  },
+
+  confirmDelete(id) {
+    this.deleteTargetId = Number(id);
+    document.getElementById('btn-confirm-delete-pac').onclick = () => this.doDeletePac();
+    openModal('modal-delete-pac');
+  },
+
+  confirmDeleteCurrent() {
+    closeModal('modal-detalle-pac');
+    if (this.currentId != null) this.confirmDelete(this.currentId);
+  },
+
+  async doDeletePac() {
+    const id = this.deleteTargetId;
+    if (id == null || Number.isNaN(id)) return;
+    try {
+      await Store.deletePaciente(id);
+      closeModal('modal-delete-pac');
+      toast('Expediente desactivado (datos conservados según normativa)', 'warn', '📋');
+      this.deleteTargetId = null;
+      this.currentId = null;
+      this.render();
+      this.renderStats();
+    } catch (e) { /* toast en app.js */ }
+  },
+};
+
+window.addEventListener('psicosoft:ready', () => PacientesPage.init());
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda — PsicoSoft</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.agenda-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.week-range {
+  font-family: var(--ff-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+/* Sidebar derecho */
+.agenda-side .card { margin-bottom: 16px; }
+
+/* Lista de citas del día */
+.cita-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--rose-pale);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  transition: all .2s;
+}
+.cita-card:hover { background: var(--blush); border-color: var(--rose); }
+.cita-card.cita-conflict { background: #fff9ed; border-color: #fbbf24; }
+.cc-time {
+  font-family: var(--ff-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mauve-deep);
+  min-width: 80px;
+  text-align: center;
+  line-height: 1.3;
+}
+.cc-dash { display: block; color: var(--text-muted); }
+.cc-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cc-info { flex: 1; }
+.cc-info strong { display: block; font-size: 13px; color: var(--text); }
+.cc-info span   { font-size: 11.5px; color: var(--text-muted); }
+.cc-actions     { display: flex; gap: 4px; }
+
+/* Leyenda de consultorios */
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(240,212,228,.5);
+  font-size: 13px;
+  font-weight: 600;
+}
+.legend-item:last-child { border-bottom: none; }
+
+/* Filtro de fecha */
+.date-pick {
+  background: var(--rose-pale);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: var(--ff-body);
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+/* Modal detalle cita */
+.detail-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(240,212,228,.4);
+  font-size: 14px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .dr-lbl { color: var(--text-muted); font-weight: 600; font-size: 12px; min-width: 100px; margin-top: 1px; }
+.detail-row .dr-val { color: var(--text); flex: 1; }
+
+/* Conflict list */
+.conflict-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(240,212,228,.4);
+  font-size: 13px;
+}
+.conflict-list-item:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html" class="active"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<!-- ── MODAL DETALLE CITA ── -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <h2>📋 Detalle de cita</h2>
+    <p class="sub" id="detail-fecha">—</p>
+    <div id="detail-body"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="AgendaPage.editCita()">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="AgendaPage.deleteCurrentCita()">🗑 Cancelar cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<main class="page">
+  <div class="container">
+    <div class="page-hero" style="text-align:left;margin-bottom:28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="page-hero-tag">📅 Agenda semanal</div>
+          <h1 style="font-family:var(--ff-display);font-size:30px;margin-top:4px">
+            Tu semana de un <em style="color:var(--rose-deep)">vistazo</em>
+          </h1>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span id="conflict-count" class="badge badge-warn" style="display:none">⚠️ 0 empalmes</span>
+          <a href="nueva-cita.html" class="btn btn-primary btn-sm">✨ Nueva cita</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel conflictos global -->
+    <div id="global-conflict-panel" style="margin-bottom:16px"></div>
+
+    <div class="agenda-layout">
+      <!-- Vista semanal -->
+      <div>
+        <div class="week-nav">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="WeekView.prev()">◀</button>
+          <span class="week-range" id="week-range">—</span>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="WeekView.next()">▶</button>
+          <button class="btn btn-secondary btn-sm" onclick="WeekView.goToday()">Hoy</button>
+        </div>
+        <div style="overflow-x:auto">
+          <div id="week-container"></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-muted);margin-top:8px;text-align:center">
+          💡 Haz clic en una celda vacía para crear una cita en ese horario
+        </p>
+      </div>
+
+      <!-- Sidebar derecho -->
+      <div class="agenda-side">
+        <!-- Fecha seleccionada -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">📋 Citas del día</div>
+          <input type="date" class="date-pick" id="day-picker">
+          <div style="margin-top:14px" id="day-list"></div>
+        </div>
+
+        <!-- Leyenda consultorios -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">🏥 Consultorios</div>
+          <div id="legend-list"></div>
+          <div style="margin-top:12px">
+            <a href="consultorios.html" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center">Gestionar →</a>
+          </div>
+        </div>
+
+        <!-- Conflictos -->
+        <div class="card" id="conflict-sidebar" style="display:none">
+          <div class="card-title" style="margin-bottom:4px;color:var(--rose-deep)">⚠️ Empalmes activos</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Citas que se solapan en horario</p>
+          <div id="conflict-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script src="agenda.js"></script>
+<script>
+/* ══════════════════════════════════════════
+   PAGE CONTROLLER
+══════════════════════════════════════════ */
+const AgendaPage = {
+  selectedCitaId: null,
+
+  init() {
+    // Inicializar vista semanal
+    WeekView.init('week-container');
+
+    // Date picker — por defecto hoy
+    const dp = document.getElementById('day-picker');
+    dp.value = Utils.today();
+    dp.addEventListener('change', () => AgendaPage.refreshDay());
+
+    // Renderizar sidebar
+    this.refreshDay();
+    this.renderLegend();
+    updateConflictPanel();
+
+    // Reactivo a cambios
+    Store.on('citas',        () => { WeekView.render(); AgendaPage.refreshDay(); updateConflictPanel(); });
+    Store.on('consultorios', () => { WeekView.render(); AgendaPage.renderLegend(); });
+  },
+
+  refreshDay() {
+    const date = document.getElementById('day-picker').value || Utils.today();
+    DayList.render(date, 'day-list');
+  },
+
+  renderLegend() {
+    const consultorios = Store.getConsultorios();
+    const el = document.getElementById('legend-list');
+    if (!consultorios.length) {
+      el.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">Sin consultorios.</p>`;
+      return;
+    }
+    el.innerHTML = consultorios.map(c => `
+      <div class="legend-item">
+        <div class="work-dot" style="background:${c.color}"></div>
+        <span>${c.nombre}</span>
+        <span class="badge badge-rose" style="margin-left:auto;font-size:10px">${c.horario||''}</span>
+      </div>`).join('');
+  },
+
+  openCitaDetail(id) {
+    this.selectedCitaId = id;
+    const cita = Store.getCitas().find(c => c.id === id);
+    if (!cita) return;
+    const pac  = Store.getPacientes().find(p => p.id === cita.pacienteId);
+    const cons = Store.getConsultorios().find(c => c.id === cita.consultoId);
+    const conflicts = ConflictDetector.checkNew(cita, Store.getCitas().filter(c=>c.id!==id));
+
+    document.getElementById('detail-fecha').textContent = Utils.fmtDateFull(cita.fecha);
+    document.getElementById('detail-body').innerHTML = `
+      ${conflicts.length ? `<div class="conflict-banner" style="margin-bottom:16px">
+        <span class="ci">⚠️</span>
+        <div><strong>Esta cita tiene ${conflicts.length} empalme(s)</strong>
+          ${conflicts.map(({cita:c2,tipo})=>{
+            const p2=Store.getPacientes().find(p=>p.id===c2.pacienteId);
+            const c22=Store.getConsultorios().find(cc=>cc.id===c2.consultoId);
+            return `<div style="font-size:13px;margin-top:4px">→ ${p2?.nombre||'?'} en ${c22?.nombre||'?'} (${c2.horaInicio}–${c2.horaFin}) ${tipo==='diferente_consultorio'?'<em style="color:#8a6500">— diferente consultorio</em>':''}</div>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
+      <div class="detail-row"><span class="dr-lbl">Paciente</span><span class="dr-val">${pac?.nombre||'—'}</span></div>
+      <div class="detail-row"><span class="dr-lbl">Consultorio</span>
+        <span class="dr-val" style="display:flex;align-items:center;gap:8px">
+          <span class="work-dot" style="background:${cons?.color||'#f9a8c9'}"></span>${cons?.nombre||'—'}
+        </span>
+      </div>
+      <div class="detail-row"><span class="dr-lbl">Horario</span><span class="dr-val">${Utils.fmt12(cita.horaInicio)} — ${Utils.fmt12(cita.horaFin)}</span></div>
+      <div class="detail-row"><span class="dr-lbl">Tipo</span><span class="dr-val">${cita.tipo||'—'}</span></div>
+      <div class="detail-row"><span class="dr-lbl">Estado</span><span class="dr-val"><span class="badge badge-mint">${cita.estado}</span></span></div>
+      ${cita.notas ? `<div class="detail-row"><span class="dr-lbl">Notas</span><span class="dr-val">${cita.notas}</span></div>` : ''}
+    `;
+    openModal('modal-detalle');
+  },
+
+  deleteCurrentCita() {
+    if (!this.selectedCitaId) return;
+    if (!confirm('¿Cancelar esta cita?')) return;
+    Store.updateCita(this.selectedCitaId, { estado: 'Cancelada' });
+    closeModal('modal-detalle');
+    toast('Cita cancelada', 'warn', '🌷');
+  },
+
+  deleteCita(id) {
+    if (!confirm('¿Cancelar esta cita?')) return;
+    Store.updateCita(id, { estado: 'Cancelada' });
+    toast('Cita cancelada', 'warn', '🌷');
+  },
+
+  editCita() {
+    if (!this.selectedCitaId) return;
+    window.location.href = `nueva-cita.html?edit=${this.selectedCitaId}`;
+  },
+};
+
+function updateConflictPanel() {
+  const conflicts = ConflictDetector.getConflicts(Store.getCitas());
+  const sidebar = document.getElementById('conflict-sidebar');
+  const panel   = document.getElementById('global-conflict-panel');
+  const badge   = document.getElementById('conflict-count');
+
+  if (badge) {
+    badge.textContent = `⚠️ ${conflicts.length} empalme${conflicts.length!==1?'s':''}`;
+    badge.style.display = conflicts.length > 0 ? 'inline-flex' : 'none';
+  }
+
+  if (!conflicts.length) {
+    if (sidebar) sidebar.style.display = 'none';
+    if (panel)   panel.innerHTML = '';
+    return;
+  }
+
+  if (sidebar) sidebar.style.display = 'block';
+
+  const consultorios = Store.getConsultorios();
+  const pacientes    = Store.getPacientes();
+
+  const items = conflicts.map(({a,b,tipo}) => {
+    const cA = consultorios.find(c=>c.id===a.consultoId);
+    const cB = consultorios.find(c=>c.id===b.consultoId);
+    const pA = pacientes.find(p=>p.id===a.pacienteId);
+    const pB = pacientes.find(p=>p.id===b.pacienteId);
+    return `<div class="conflict-list-item">
+      <span>⚠️</span>
+      <div>
+        <strong style="display:block;font-size:13px">${Utils.fmtDate(a.fecha)} · ${a.horaInicio}–${a.horaFin}</strong>
+        <span style="color:var(--text-muted);font-size:12px">
+          ${pA?.nombre||'?'} <span class="work-dot" style="background:${cA?.color||'#ccc'};display:inline-block;margin:0 3px"></span>${cA?.nombre||'?'}<br>
+          ${pB?.nombre||'?'} <span class="work-dot" style="background:${cB?.color||'#ccc'};display:inline-block;margin:0 3px"></span>${cB?.nombre||'?'}
+        </span>
+        ${tipo==='diferente_consultorio'
+          ? `<span class="badge badge-warn" style="margin-top:4px;font-size:10px">🏥 Diferente consultorio</span>`
+          : `<span class="badge badge-danger" style="margin-top:4px;font-size:10px">⚡ Mismo consultorio</span>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const listEl = document.getElementById('conflict-list');
+  if (listEl) listEl.innerHTML = items;
+
+  if (panel) panel.innerHTML = `<div class="conflict-banner">
+    <span class="ci">⚠️</span>
+    <div><strong>${conflicts.length} empalme(s) detectado(s) en tu agenda</strong>
+      <span>Revisa el panel lateral para ver el detalle de cada conflicto.</span>
+    </div>
+  </div>`;
+}
+
+function openNuevaCita(date, hora) {
+  window.location.href = `nueva-cita.html?fecha=${date}&hora=${hora}`;
+}
+
+window.addEventListener('psicosoft:ready', () => AgendaPage.init());
+</script>
+</body>
+</html>

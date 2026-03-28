@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup Manager — PsicoSoft</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ── Backup Manager Exclusivo ── */
+.bm-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  min-height: calc(100vh - var(--nav-h));
+}
+
+/* Sidebar backup */
+.bm-nav {
+  background: white;
+  border-right: 1.5px solid var(--border);
+  padding: 24px 16px;
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+}
+.bm-nav-title {
+  font-family: var(--ff-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+}
+.bm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  transition: all .18s;
+  margin-bottom: 3px;
+}
+.bm-nav-item:hover { background: var(--rose-pale); color: var(--rose-deep); }
+.bm-nav-item.active { background: var(--rose-light); color: var(--mauve-deep); }
+
+.bm-content {
+  padding: 32px;
+}
+
+/* Vista / Panel */
+.bm-view { display: none; }
+.bm-view.active { display: block; }
+
+/* SQL Output */
+.sql-box {
+  background: #1a0f16;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #f0d4e4;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 16px;
+  position: relative;
+}
+.sql-kw   { color: #f9a8c9; font-weight: bold; }
+.sql-fn   { color: #a8e6cf; }
+.sql-str  { color: #fbbf24; }
+.sql-num  { color: #d8b4fe; }
+.sql-cmt  { color: #6b7280; font-style: italic; }
+.sql-copy {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: var(--rose);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s;
+}
+.sql-copy:hover { background: var(--rose-deep); }
+
+/* Progress terminal */
+.terminal {
+  background: #0d0810;
+  border-radius: var(--radius-md);
+  padding: 18px;
+  font-family: 'Courier New', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #f0d4e4;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+.t-ok   { color: #a8e6cf; }
+.t-info { color: #f9a8c9; }
+.t-warn { color: #fbbf24; }
+.t-err  { color: #f87171; }
+.t-dim  { color: #6b7280; }
+
+.progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rose), var(--mauve));
+  border-radius: 4px;
+  width: 0%;
+  transition: width .3s;
+}
+
+/* Historial demo table */
+.bh-status-ok   { color: #1a7a54; font-weight: 700; }
+.bh-status-err  { color: #c0392b; font-weight: 700; }
+.bh-status-run  { color: var(--mauve-deep); font-weight: 700; }
+
+/* Tipo badge colors */
+.bt-full { background:var(--rose-light);  color:var(--rose-deep);  border:1px solid rgba(232,116,159,.3); }
+.bt-diff { background:var(--lav-light);   color:var(--mauve-deep); border:1px solid rgba(216,180,254,.4); }
+.bt-log  { background:var(--mint-light);  color:#1a7a54;            border:1px solid rgba(168,230,207,.5); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html" class="active"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+<div id="toast-container"></div>
+
+<div class="bm-layout" style="margin-top:var(--nav-h)">
+
+  <!-- Sidebar -->
+  <aside class="bm-nav">
+    <div style="padding:4px 12px 16px">
+      <div style="font-size:22px;margin-bottom:4px">💾</div>
+      <div style="font-family:var(--ff-display);font-size:17px;font-weight:700;color:var(--text)">Backup Manager</div>
+      <div style="font-size:12px;color:var(--text-muted)">PsicoSoft DB Tools</div>
+    </div>
+
+    <div class="bm-nav-title">Operaciones</div>
+    <div class="bm-nav-item active" onclick="BMPage.show('dashboard')">📊 Dashboard</div>
+    <div class="bm-nav-item" onclick="BMPage.show('full')">🗂 Backup Completo</div>
+    <div class="bm-nav-item" onclick="BMPage.show('diff')">📊 Backup Diferencial</div>
+    <div class="bm-nav-item" onclick="BMPage.show('log')">📋 Backup de Log</div>
+    <div class="bm-nav-item" onclick="BMPage.show('all')">🌐 Backup Masivo</div>
+
+    <div class="bm-nav-title">Gestión</div>
+    <div class="bm-nav-item" onclick="BMPage.show('restore')">🔄 Restaurar</div>
+    <div class="bm-nav-item" onclick="BMPage.show('history')">🕐 Historial</div>
+    <div class="bm-nav-item" onclick="BMPage.show('schedule')">📅 Programar Job</div>
+    <div class="bm-nav-item" onclick="BMPage.show('cleanup')">🗑 Limpieza</div>
+
+    <div class="bm-nav-title" style="margin-top:24px">Referencia</div>
+    <div style="padding:10px 12px;background:var(--rose-pale);border-radius:var(--radius-sm);font-size:11.5px;color:var(--text-muted);line-height:1.6">
+      <strong style="color:var(--mauve-deep)">8 Procedimientos</strong><br>
+      SP_PSICO_BACKUP_FULL<br>
+      SP_PSICO_BACKUP_DIFFERENTIAL<br>
+      SP_PSICO_BACKUP_LOG<br>
+      SP_PSICO_BACKUP_ALL_USER<br>
+      SP_PSICO_RESTORE<br>
+      SP_PSICO_BACKUP_HISTORY<br>
+      SP_PSICO_BACKUP_CLEANUP<br>
+      SP_PSICO_SCHEDULE_BACKUP
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="bm-content">
+
+    <!-- DASHBOARD -->
+    <div class="bm-view active" id="bv-dashboard">
+      <div class="page-hero" style="text-align:left;margin-bottom:24px">
+        <div class="page-hero-tag">💾 Sistema de Respaldo</div>
+        <h1 style="font-family:var(--ff-display);font-size:28px">Copias de <em style="color:var(--rose-deep)">Seguridad</em></h1>
+        <p style="color:var(--text-muted);margin-top:4px">Genera scripts T-SQL para ejecutar en SQL Server Management Studio.</p>
+      </div>
+
+      <div class="stats-strip" style="margin-bottom:24px">
+        <div class="stat-card"><div class="stat-icon si-rose">✅</div><div><div class="stat-val" id="d-ok">12</div><div class="stat-lbl">Exitosos (demo)</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-mint">💾</div><div><div class="stat-val">8.4 <span style="font-size:14px">GB</span></div><div class="stat-lbl">Espacio total</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-lav">🕐</div><div><div class="stat-val">2</div><div class="stat-lbl">Jobs activos</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-sand">⚠️</div><div><div class="stat-val">1</div><div class="stat-lbl">Errores</div></div></div>
+      </div>
+
+      <!-- Referencia de SPs -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:4px">📋 Procedimientos disponibles</div>
+        <p class="card-sub">Todos residen en <code style="background:var(--rose-pale);padding:1px 6px;border-radius:4px">PsicoBackupControl.dbo</code></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Procedimiento</th><th>Función</th><th>Parámetros clave</th></tr></thead>
+            <tbody>
+              <tr><td class="badge bt-full" style="display:table-cell">SP_PSICO_BACKUP_FULL</td><td>Backup completo</td><td style="font-size:11.5px;color:var(--text-muted)">@DatabaseName, @BackupPath, @Compression, @Verify</td></tr>
+              <tr><td class="badge bt-diff" style="display:table-cell">SP_PSICO_BACKUP_DIFFERENTIAL</td><td>Solo cambios desde último FULL</td><td style="font-size:11.5px;color:var(--text-muted)">@DatabaseName, @BackupPath, @Compression</td></tr>
+              <tr><td class="badge bt-log" style="display:table-cell">SP_PSICO_BACKUP_LOG</td><td>Log de transacciones</td><td style="font-size:11.5px;color:var(--text-muted)">@DatabaseName, @BackupPath</td></tr>
+              <tr><td>SP_PSICO_BACKUP_ALL_USER</td><td>Backup masivo todas las bases</td><td style="font-size:11.5px;color:var(--text-muted)">@BackupPath, @BackupType</td></tr>
+              <tr><td>SP_PSICO_RESTORE</td><td>Restaurar base de datos</td><td style="font-size:11.5px;color:var(--text-muted)">@DatabaseName, @BackupFile, @RestoreMode</td></tr>
+              <tr><td>SP_PSICO_BACKUP_HISTORY</td><td>Historial con filtros</td><td style="font-size:11.5px;color:var(--text-muted)">@DatabaseName, @BackupType, @Status, @TopN</td></tr>
+              <tr><td>SP_PSICO_BACKUP_CLEANUP</td><td>Eliminar backups antiguos</td><td style="font-size:11.5px;color:var(--text-muted)">@RetentionDays, @WhatIf</td></tr>
+              <tr><td>SP_PSICO_SCHEDULE_BACKUP</td><td>Crear job en SQL Agent</td><td style="font-size:11.5px;color:var(--text-muted)">@JobName, @DatabaseName, @FrequencyType</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP FULL -->
+    <div class="bm-view" id="bv-full">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">🗂 Completo</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Backup <em style="color:var(--rose-deep)">Completo</em></h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Base de datos *</label><input type="text" id="ff-db" value="PsicoSoft"></div>
+          <div class="field"><label>Ruta de destino *</label><input type="text" id="ff-path" value="C:\Backups\"></div>
+          <div class="field"><label>Descripción</label><input type="text" id="ff-desc" placeholder="Backup mensual..."></div>
+          <div class="field"><label>Opciones</label>
+            <div style="display:flex;gap:12px;margin-top:8px">
+              <label style="display:flex;gap:6px;cursor:pointer;font-size:14px;align-items:center">
+                <input type="checkbox" id="ff-comp" checked style="accent-color:var(--rose);width:16px;height:16px"> Compresión</label>
+              <label style="display:flex;gap:6px;cursor:pointer;font-size:14px;align-items:center">
+                <input type="checkbox" id="ff-ver" checked style="accent-color:var(--rose);width:16px;height:16px"> Verificar</label>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="BMPage.genFull(true)">👁 Vista previa</button>
+          <button class="btn btn-primary" onclick="BMPage.genFull(false)">▶ Generar & Simular</button>
+        </div>
+        <div id="full-sql-wrap" style="display:none">
+          <div class="sql-box" id="full-sql"><button class="sql-copy" onclick="BMPage.copy('full-sql')">📋 Copiar</button></div>
+        </div>
+        <div id="full-prog" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="full-fill"></div></div>
+          <div class="terminal" id="full-term"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP DIFF -->
+    <div class="bm-view" id="bv-diff">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">📊 Diferencial</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Backup <em style="color:var(--rose-deep)">Diferencial</em></h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Base de datos *</label><input type="text" id="fd-db" value="PsicoSoft"></div>
+          <div class="field"><label>Ruta de destino *</label><input type="text" id="fd-path" value="C:\Backups\"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="BMPage.genDiff()">▶ Generar Script</button>
+        </div>
+        <div class="sql-box" id="diff-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('diff-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+    <!-- BACKUP LOG -->
+    <div class="bm-view" id="bv-log">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">📋 Log</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Backup <em style="color:var(--rose-deep)">de Log</em></h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Base de datos *</label><input type="text" id="fl-db" value="PsicoSoft"></div>
+          <div class="field"><label>Ruta de destino *</label><input type="text" id="fl-path" value="C:\Backups\"></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="BMPage.genLog()">▶ Generar Script</button></div>
+        <div class="sql-box" id="log-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('log-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+    <!-- BACKUP ALL -->
+    <div class="bm-view" id="bv-all">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">🌐 Masivo</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Backup <em style="color:var(--rose-deep)">Masivo</em></h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Tipo</label>
+            <select id="fa-type"><option value="FULL">FULL</option><option value="DIFFERENTIAL">DIFFERENTIAL</option><option value="LOG">LOG</option></select>
+          </div>
+          <div class="field"><label>Ruta de destino</label><input type="text" id="fa-path" value="C:\Backups\"></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="BMPage.genAll()">▶ Generar Script</button></div>
+        <div class="sql-box" id="all-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('all-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+    <!-- RESTORE -->
+    <div class="bm-view" id="bv-restore">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">🔄 Restauración</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px"><em style="color:var(--rose-deep)">Restaurar</em> Base</h1>
+      </div>
+      <div class="card">
+        <div class="conflict-banner" style="margin-bottom:20px">
+          <span class="ci">⚠️</span>
+          <div><strong>Operación destructiva</strong><span>Sobrescribirá los datos existentes. Haz un backup previo.</span></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Nombre destino</label><input type="text" id="fr-db" value="PsicoSoft"></div>
+          <div class="field"><label>Archivo .bak</label><input type="text" id="fr-file" placeholder="C:\Backups\PsicoSoft_FULL_....bak"></div>
+          <div class="field"><label>Modo</label>
+            <select id="fr-mode"><option value="RECOVERY">RECOVERY</option><option value="NORECOVERY">NORECOVERY</option><option value="STANDBY">STANDBY</option></select>
+          </div>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger" onclick="BMPage.genRestore()">🔄 Generar Script de Restauración</button></div>
+        <div class="sql-box" id="restore-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('restore-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="bm-view" id="bv-history">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">🕐 Registro</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Historial de <em style="color:var(--rose-deep)">Backups</em></h1>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="form-grid">
+          <div class="field"><label>Base de datos</label><input type="text" id="fh-db" placeholder="Todas"></div>
+          <div class="field"><label>Tipo</label>
+            <select id="fh-type"><option value="">Todos</option><option value="FULL">FULL</option><option value="DIFFERENTIAL">DIFFERENTIAL</option><option value="LOG">LOG</option></select>
+          </div>
+          <div class="field"><label>Estado</label>
+            <select id="fh-status"><option value="">Todos</option><option value="SUCCESS">SUCCESS</option><option value="ERROR">ERROR</option></select>
+          </div>
+          <div class="field"><label>Top N</label><input type="number" id="fh-top" value="100" min="1"></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="BMPage.genHistory()">▶ Generar Consulta</button></div>
+        <div class="sql-box" id="hist-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('hist-sql')">📋 Copiar</button></div>
+      </div>
+      <!-- Demo table -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">📊 Demo de historial</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Base</th><th>Tipo</th><th>Tamaño</th><th>Duración</th><th>Fecha</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>12</td><td>PsicoSoft</td><td><span class="badge bt-full">FULL</span></td><td>1.2 GB</td><td>4m 10s</td><td>2024-03-27 02:00</td><td class="bh-status-ok">✅ SUCCESS</td></tr>
+            <tr><td>11</td><td>PsicoSoft</td><td><span class="badge bt-diff">DIFF</span></td><td>120 MB</td><td>28s</td><td>2024-03-26 14:00</td><td class="bh-status-ok">✅ SUCCESS</td></tr>
+            <tr><td>10</td><td>PsicoSoft</td><td><span class="badge bt-log">LOG</span></td><td>18 MB</td><td>4s</td><td>2024-03-26 08:00</td><td class="bh-status-ok">✅ SUCCESS</td></tr>
+            <tr><td>9</td><td>PsicoSoft</td><td><span class="badge bt-full">FULL</span></td><td>—</td><td>—</td><td>2024-03-25 02:00</td><td class="bh-status-err">❌ ERROR</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div class="bm-view" id="bv-schedule">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">📅 Automatización</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px">Programar <em style="color:var(--rose-deep)">Job</em></h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Nombre del Job</label><input type="text" id="fs-job" value="Backup_Diario_PsicoSoft"></div>
+          <div class="field"><label>Base de datos</label><input type="text" id="fs-db" value="PsicoSoft"></div>
+          <div class="field"><label>Tipo</label>
+            <select id="fs-type"><option value="FULL">FULL</option><option value="DIFFERENTIAL">DIFFERENTIAL</option><option value="LOG">LOG</option></select>
+          </div>
+          <div class="field"><label>Frecuencia</label>
+            <select id="fs-freq"><option value="4">Diariamente</option><option value="8">Semanalmente</option><option value="16">Mensualmente</option></select>
+          </div>
+          <div class="field"><label>Hora inicio</label><input type="time" id="fs-time" value="02:00"></div>
+          <div class="field"><label>Ruta destino</label><input type="text" id="fs-path" value="C:\Backups\"></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="BMPage.genSchedule()">▶ Generar Script de Job</button></div>
+        <div class="sql-box" id="sched-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('sched-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+    <!-- CLEANUP -->
+    <div class="bm-view" id="bv-cleanup">
+      <div class="page-hero" style="text-align:left;margin-bottom:20px">
+        <div class="page-hero-tag">🗑 Retención</div>
+        <h1 style="font-family:var(--ff-display);font-size:26px"><em style="color:var(--rose-deep)">Limpieza</em> de backups</h1>
+      </div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field"><label>Retención (días)</label><input type="number" id="fc-days" value="30" min="1"></div>
+          <div class="field"><label>Base (vacío = todas)</label><input type="text" id="fc-db" placeholder="PsicoSoft"></div>
+          <div class="field"><label>Modo</label>
+            <select id="fc-whatif"><option value="1">WHATIF — Solo previsualizar</option><option value="0">REAL — Eliminar registros</option></select>
+          </div>
+        </div>
+        <div class="btn-row"><button class="btn btn-danger" onclick="BMPage.genCleanup()">▶ Generar Script</button></div>
+        <div class="sql-box" id="clean-sql" style="display:none"><button class="sql-copy" onclick="BMPage.copy('clean-sql')">📋 Copiar</button></div>
+      </div>
+    </div>
+
+  </div><!-- /bm-content -->
+</div>
+
+<script src="app.js"></script>
+<script>
+function kw(t) { return `<span class="sql-kw">${t}</span>`; }
+function fn_(t){ return `<span class="sql-fn">${t}</span>`; }
+function str(t){ return `<span class="sql-str">'${t}'</span>`; }
+function num(t){ return `<span class="sql-num">${t}</span>`; }
+function cmt(t){ return `<span class="sql-cmt">${t}</span>`; }
+
+const BMPage = {
+  show(id) {
+    document.querySelectorAll('.bm-view').forEach(v=>v.classList.remove('active'));
+    document.querySelectorAll('.bm-nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('bv-'+id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  },
+
+  renderSQL(elId, sql) {
+    const el = document.getElementById(elId);
+    el.style.display = 'block';
+    const btn = el.querySelector('.sql-copy');
+    el.innerHTML = '';
+    if (btn) el.appendChild(btn);
+    const pre = document.createElement('pre');
+    pre.style.display = 'inline';
+    pre.innerHTML = sql;
+    el.appendChild(pre);
+  },
+
+  copy(elId) {
+    const el = document.getElementById(elId);
+    const text = el.innerText.replace('📋 Copiar','').trim();
+    navigator.clipboard.writeText(text).then(()=>toast('SQL copiado al portapapeles 💾','success'));
+  },
+
+  genFull(preview) {
+    const db   = document.getElementById('ff-db').value || 'PsicoSoft';
+    const path = document.getElementById('ff-path').value || 'C:\\Backups\\';
+    const desc = document.getElementById('ff-desc').value;
+    const comp = document.getElementById('ff-comp').checked ? 1 : 0;
+    const ver  = document.getElementById('ff-ver').checked  ? 1 : 0;
+
+    const sql = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_FULL')}\n    ${kw('@DatabaseName')} = ${str(db)},\n    ${kw('@BackupPath')}   = ${str(path)},\n    ${kw('@Compression')}  = ${num(comp)},\n    ${kw('@Verify')}       = ${num(ver)}${desc?`,\n    ${kw('@Description')}  = ${str(desc)}`:''};\n${kw('GO')}`;
+
+    const wrap = document.getElementById('full-sql-wrap');
+    wrap.style.display = 'block';
+    this.renderSQL('full-sql', sql);
+
+    if (!preview) this.simulate('full', db);
+  },
+
+  simulate(prefix, db) {
+    const prog = document.getElementById(prefix+'-prog');
+    const fill = document.getElementById(prefix+'-fill');
+    const term = document.getElementById(prefix+'-term');
+    if (!prog) return;
+    prog.style.display = 'block';
+    term.innerHTML = '';
+    fill.style.width = '0%';
+
+    const steps = [
+      [10,  `<span class="t-dim">[${ts()}]</span> <span class="t-info">→ Iniciando SP_PSICO_BACKUP_FULL...</span>`],
+      [20,  `<span class="t-dim">[${ts()}]</span> Validando base de datos <span class="t-ok">${db}</span>... OK`],
+      [35,  `<span class="t-dim">[${ts()}]</span> Registrando en BackupLog → LogID creado`],
+      [55,  `<span class="t-dim">[${ts()}]</span> <span class="t-info">BACKUP DATABASE ejecutándose... 10%... 40%...</span>`],
+      [70,  `<span class="t-dim">[${ts()}]</span> 70%... 90%... 100% — archivo escrito correctamente`],
+      [85,  `<span class="t-dim">[${ts()}]</span> RESTORE VERIFYONLY — verificando integridad...`],
+      [95,  `<span class="t-dim">[${ts()}]</span> <span class="t-ok">✅ Verificación OK</span>`],
+      [100, `<span class="t-dim">[${ts()}]</span> <span class="t-ok">🌸 Backup completado exitosamente</span>\n<span class="t-dim">   Archivo: ${db}_FULL_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.bak</span>`],
+    ];
+
+    let i=0;
+    const run=()=>{
+      if(i>=steps.length) return;
+      const [p,m]=steps[i++];
+      fill.style.width=p+'%';
+      term.innerHTML+=m+'\n';
+      term.scrollTop=term.scrollHeight;
+      setTimeout(run,280+Math.random()*350);
+    };
+    run();
+  },
+
+  genDiff() {
+    const db   = document.getElementById('fd-db').value||'PsicoSoft';
+    const path = document.getElementById('fd-path').value||'C:\\Backups\\';
+    const sql  = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_DIFFERENTIAL')}\n    ${kw('@DatabaseName')} = ${str(db)},\n    ${kw('@BackupPath')}   = ${str(path)},\n    ${kw('@Compression')}  = ${num(1)};\n${kw('GO')}`;
+    this.renderSQL('diff-sql', sql);
+  },
+
+  genLog() {
+    const db   = document.getElementById('fl-db').value||'PsicoSoft';
+    const path = document.getElementById('fl-path').value||'C:\\Backups\\';
+    const sql  = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${cmt('-- Requiere modelo de recuperación FULL o BULK')}\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_LOG')}\n    ${kw('@DatabaseName')} = ${str(db)},\n    ${kw('@BackupPath')}   = ${str(path)};\n${kw('GO')}`;
+    this.renderSQL('log-sql', sql);
+  },
+
+  genAll() {
+    const type = document.getElementById('fa-type').value;
+    const path = document.getElementById('fa-path').value||'C:\\Backups\\';
+    const sql  = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${cmt('-- Backup masivo de todas las bases de usuario')}\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_ALL_USER')}\n    ${kw('@BackupPath')}  = ${str(path)},\n    ${kw('@BackupType')}  = ${str(type)},\n    ${kw('@Compression')} = ${num(1)};\n${kw('GO')}`;
+    this.renderSQL('all-sql', sql);
+  },
+
+  genRestore() {
+    const db   = document.getElementById('fr-db').value||'PsicoSoft';
+    const file = document.getElementById('fr-file').value||'C:\\Backups\\backup.bak';
+    const mode = document.getElementById('fr-mode').value;
+    const sql  = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${cmt('-- ⚠️ PRECAUCIÓN: sobrescribe datos existentes')}\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_RESTORE')}\n    ${kw('@DatabaseName')} = ${str(db)},\n    ${kw('@BackupFile')}   = ${str(file)},\n    ${kw('@RestoreMode')}  = ${str(mode)};\n${kw('GO')}`;
+    this.renderSQL('restore-sql', sql);
+  },
+
+  genHistory() {
+    const db     = document.getElementById('fh-db').value;
+    const type   = document.getElementById('fh-type').value;
+    const status = document.getElementById('fh-status').value;
+    const top    = document.getElementById('fh-top').value||'100';
+    let sql = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_HISTORY')}\n`;
+    if(db)     sql+=`    ${kw('@DatabaseName')} = ${str(db)},\n`;
+    if(type)   sql+=`    ${kw('@BackupType')}   = ${str(type)},\n`;
+    if(status) sql+=`    ${kw('@Status')}       = ${str(status)},\n`;
+    sql+=`    ${kw('@TopN')}         = ${num(top)};\n${kw('GO')}`;
+    this.renderSQL('hist-sql', sql);
+  },
+
+  genSchedule() {
+    const job  = document.getElementById('fs-job').value||'Backup_Job';
+    const db   = document.getElementById('fs-db').value||'PsicoSoft';
+    const type = document.getElementById('fs-type').value;
+    const freq = document.getElementById('fs-freq').value;
+    const time = document.getElementById('fs-time').value.replace(':','')+'00';
+    const path = document.getElementById('fs-path').value||'C:\\Backups\\';
+    const sql  = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_SCHEDULE_BACKUP')}\n    ${kw('@JobName')}       = ${str(job)},\n    ${kw('@DatabaseName')}  = ${str(db)},\n    ${kw('@BackupPath')}    = ${str(path)},\n    ${kw('@BackupType')}    = ${str(type)},\n    ${kw('@FrequencyType')} = ${num(freq)},\n    ${kw('@StartTime')}     = ${num(time)};\n${kw('GO')}`;
+    this.renderSQL('sched-sql', sql);
+  },
+
+  genCleanup() {
+    const days   = document.getElementById('fc-days').value||'30';
+    const db     = document.getElementById('fc-db').value;
+    const whatif = document.getElementById('fc-whatif').value;
+    let sql = `${kw('USE')} PsicoBackupControl;\n${kw('GO')}\n\n${kw('EXEC')} ${fn_('dbo.SP_PSICO_BACKUP_CLEANUP')}\n    ${kw('@RetentionDays')} = ${num(days)},\n`;
+    if(db) sql+=`    ${kw('@DatabaseName')}  = ${str(db)},\n`;
+    sql+=`    ${kw('@WhatIf')}        = ${num(whatif)};\n${kw('GO')}`;
+    this.renderSQL('clean-sql', sql);
+  },
+};
+
+function ts() { return new Date().toTimeString().slice(0,8); }
+</script>
+</body>
+</html>

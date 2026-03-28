@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultorios — PsicoSoft</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.consultorios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.consultorio-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: 0 4px 20px var(--shadow);
+  transition: all .25s;
+  position: relative;
+  overflow: hidden;
+}
+.consultorio-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.consultorio-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 36px var(--shadow-deep);
+}
+
+.cc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.cc-name {
+  font-family: var(--ff-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.cc-badge {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.cc-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+.cc-info-row .icon { font-size: 15px; flex-shrink: 0; }
+
+.cc-stats {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--rose-pale);
+  border-radius: var(--radius-sm);
+}
+.ccs-item { text-align: center; flex: 1; }
+.ccs-val  { font-family: var(--ff-display); font-size: 22px; font-weight: 700; color: var(--text); }
+.ccs-lbl  { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+.cc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Tarjeta de agregar */
+.add-card {
+  background: linear-gradient(135deg, var(--rose-light), var(--lav-light));
+  border: 2px dashed var(--rose);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all .22s;
+  gap: 12px;
+}
+.add-card:hover {
+  background: var(--blush);
+  border-color: var(--rose-deep);
+  transform: translateY(-3px);
+}
+.add-card .add-icon { font-size: 40px; }
+.add-card h3 { font-family: var(--ff-display); font-size: 18px; color: var(--mauve-deep); }
+.add-card p  { font-size: 13px; color: var(--text-muted); }
+
+/* Colores disponibles */
+.COLORS { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+/* Toggle activo */
+.toggle-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.toggle {
+  width: 44px; height: 24px;
+  background: var(--border);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background .2s;
+  border: none;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--rose); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.toggle.on::after { transform: translateX(20px); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🌸</div>
+    <div>
+      <div class="nav-logo-text">PsicoSoft</div>
+      <div class="nav-logo-sub">GESTIÓN DE CONSULTORIO</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span class="ni">🏠</span> Inicio</a></li>
+    <li><a href="agenda.html"><span class="ni">📅</span> Agenda</a></li>
+    <li><a href="pacientes.html"><span class="ni">💗</span> Pacientes</a></li>
+    <li><a href="consultorios.html" class="active"><span class="ni">🏥</span> Consultorios</a></li>
+    <li><a href="nueva-cita.html"><span class="ni">✨</span> Nueva Cita</a></li>
+    <li><a href="backup-manager.html"><span class="ni">💾</span> Backups</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-live"><span class="live-dot"></span> EN VIVO</div>
+    <a href="agenda.html" class="nav-bell" id="nav-bell" title="Empalmes activos">
+      🔔
+      <span class="bell-badge">0</span>
+    </a>
+    <div class="nav-clock" id="nav-clock">--:--:--</div>
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="#" class="nav-logout" id="nav-logout" title="Cerrar sesión">🚪</a>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<!-- MODAL NUEVO / EDITAR CONSULTORIO -->
+<div class="modal-overlay" id="modal-consultorio">
+  <div class="modal">
+    <button class="modal-close">✕</button>
+    <h2 id="modal-cons-title">🏥 Nuevo Consultorio</h2>
+    <p class="sub" id="mcons-sub">Añade un nuevo lugar de trabajo a tu agenda.</p>
+
+    <div class="form-grid">
+      <div class="field form-full">
+        <label>Nombre del consultorio *</label>
+        <input type="text" id="f-nombre" placeholder="Consultorio Central, Clínica Sur...">
+      </div>
+      <div class="field form-full">
+        <label>Dirección</label>
+        <input type="text" id="f-dir" placeholder="Calle, número, colonia">
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input type="tel" id="f-tel" placeholder="618-000-0000">
+      </div>
+      <div class="field">
+        <label>Horario de atención</label>
+        <input type="text" id="f-horario" placeholder="09:00 - 14:00">
+      </div>
+      <div class="field form-full">
+        <label>Notas internas</label>
+        <textarea id="f-notas" placeholder="Sala de espera, estacionamiento..."></textarea>
+      </div>
+      <div class="field form-full">
+        <label>Color identificador</label>
+        <div class="COLORS" id="color-picker"></div>
+      </div>
+    </div>
+
+    <div class="toggle-field" style="margin-top:16px">
+      <span style="font-size:14px;font-weight:600;color:var(--text)">Consultorio activo</span>
+      <button class="toggle on" id="tog-activo" onclick="this.classList.toggle('on')"></button>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-consultorio')">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btn-cons-guardar" onclick="ConsultorioPage.save()">💾 Crear consultorio</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR BORRAR -->
+<div class="modal-overlay" id="modal-delete-cons">
+  <div class="modal" style="max-width:400px;text-align:center">
+    <button class="modal-close">✕</button>
+    <div style="font-size:52px;margin-bottom:12px">🗑</div>
+    <h2>¿Eliminar consultorio?</h2>
+    <p class="sub">Se eliminarán también todas las citas asociadas. Esta acción no se puede deshacer.</p>
+    <div class="btn-row" style="justify-content:center">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-delete-cons')">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="btn-confirm-delete">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <div class="container">
+    <div class="page-hero" style="text-align:left;margin-bottom:32px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="page-hero-tag">🏥 Gestión de lugares</div>
+          <h1 style="font-family:var(--ff-display);font-size:30px;margin-top:6px">
+            Tus <em style="color:var(--rose-deep)">Consultorios</em>
+          </h1>
+          <p style="color:var(--text-muted);font-size:14px;margin-top:4px">
+            Gestiona todos tus lugares de trabajo. Cada uno tiene su color y horario.
+          </p>
+        </div>
+        <button class="btn btn-primary" onclick="ConsultorioPage.openNew()">
+          🏥 Añadir consultorio
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="stats-strip" style="grid-template-columns:repeat(3,1fr);margin-bottom:28px" id="cons-stats"></div>
+
+    <!-- Grid de cards -->
+    <div class="consultorios-grid" id="consultorios-grid"></div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+const PALETTE = [
+  '#f9a8c9','#e8749f','#c084a8','#a8e6cf',
+  '#81d4a8','#d8b4fe','#c4b5fd','#fbbf24',
+  '#fb923c','#f87171','#60a5fa','#34d399',
+];
+
+const ConsultorioPage = {
+  editId: null,
+  deleteId: null,
+  selectedColor: PALETTE[0],
+
+  init() {
+    this.renderColorPicker();
+    this.render();
+    Store.on('consultorios', () => { this.render(); this.renderStats(); });
+    Store.on('citas', () => { this.render(); this.renderStats(); });
+    this.renderStats();
+  },
+
+  renderColorPicker() {
+    const el = document.getElementById('color-picker');
+    el.innerHTML = PALETTE.map(c =>
+      `<div class="color-chip${c===this.selectedColor?' selected':''}"
+            style="background:${c}"
+            onclick="ConsultorioPage.selectColor('${c}')"></div>`
+    ).join('');
+  },
+
+  selectColor(c) {
+    this.selectedColor = c;
+    this.renderColorPicker();
+  },
+
+  renderStats() {
+    const cs = Store.getConsultorios();
+    const citas = Store.getCitas();
+    const activos = cs.filter(c=>c.activo).length;
+    const totalCitas = citas.filter(c=>c.estado!=='Cancelada').length;
+    const hoy = Utils.today();
+    const citasHoy = citas.filter(c=>c.fecha===hoy&&c.estado!=='Cancelada').length;
+
+    document.getElementById('cons-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon si-rose">🏥</div>
+        <div><div class="stat-val">${cs.length}</div><div class="stat-lbl">Total consultorios</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-mint">✅</div>
+        <div><div class="stat-val">${activos}</div><div class="stat-lbl">Activos</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-lav">📅</div>
+        <div><div class="stat-val">${citasHoy}</div><div class="stat-lbl">Citas hoy</div></div></div>`;
+  },
+
+  render() {
+    const cs    = Store.getConsultorios();
+    const citas = Store.getCitas();
+    const grid  = document.getElementById('consultorios-grid');
+
+    let html = cs.map(c => {
+      const total  = citas.filter(x => Number(x.consultoId) === Number(c.id) && x.estado !== 'Cancelada').length;
+      const hoy    = citas.filter(x => Number(x.consultoId) === Number(c.id) && x.fecha === Utils.today() && x.estado !== 'Cancelada').length;
+      return `
+        <div class="consultorio-card" id="cc-${c.id}">
+          <div style="position:absolute;top:0;left:0;right:0;height:5px;background:${c.color};border-radius:var(--radius-lg) var(--radius-lg) 0 0"></div>
+          <div class="cc-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <div class="work-dot" style="background:${c.color};width:14px;height:14px"></div>
+                <div class="cc-name">${c.nombre}</div>
+              </div>
+              <span class="badge ${c.activo?'badge-mint':'badge-sand'}">${c.activo?'Activo':'Inactivo'}</span>
+            </div>
+          </div>
+
+          ${c.direccion?`<div class="cc-info-row"><span class="icon">📍</span>${c.direccion}</div>`:''}
+          ${c.telefono ?`<div class="cc-info-row"><span class="icon">📞</span>${c.telefono}</div>`:''}
+          ${c.horario  ?`<div class="cc-info-row"><span class="icon">🕐</span>${c.horario}</div>`:''}
+          ${c.notas    ?`<div class="cc-info-row"><span class="icon">📝</span>${c.notas}</div>`:''}
+
+          <div class="cc-stats">
+            <div class="ccs-item"><div class="ccs-val">${total}</div><div class="ccs-lbl">Total citas</div></div>
+            <div class="ccs-item"><div class="ccs-val">${hoy}</div><div class="ccs-lbl">Hoy</div></div>
+          </div>
+
+          <div class="cc-actions">
+            <button class="btn btn-secondary btn-sm" style="flex:1" onclick="ConsultorioPage.openEdit('${c.id}')">✏️ Editar</button>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="ConsultorioPage.confirmDelete('${c.id}')">🗑</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Tarjeta de agregar
+    html += `<div class="add-card" onclick="ConsultorioPage.openNew()">
+      <div class="add-icon">🏥</div>
+      <h3>Añadir consultorio</h3>
+      <p>Agrega un nuevo lugar de trabajo a tu agenda</p>
+    </div>`;
+
+    grid.innerHTML = html;
+  },
+
+  openNew() {
+    this.editId = null;
+    this.selectedColor = PALETTE[0];
+    document.getElementById('modal-cons-title').textContent = '🏥 Nuevo Consultorio';
+    document.getElementById('mcons-sub').textContent = 'Añade un nuevo lugar de trabajo a tu agenda.';
+    document.getElementById('btn-cons-guardar').textContent = '💾 Crear consultorio';
+    document.getElementById('f-nombre').value  = '';
+    document.getElementById('f-dir').value     = '';
+    document.getElementById('f-tel').value     = '';
+    document.getElementById('f-horario').value = '';
+    document.getElementById('f-notas').value   = '';
+    document.getElementById('tog-activo').className = 'toggle on';
+    this.renderColorPicker();
+    openModal('modal-consultorio');
+  },
+
+  openEdit(id) {
+    const cid = Number(id);
+    this.editId = cid;
+    const c = Store.getConsultorios().find(x => Number(x.id) === cid);
+    if (!c) return;
+    this.selectedColor = c.color || PALETTE[0];
+    document.getElementById('modal-cons-title').textContent = '✏️ Editar Consultorio';
+    document.getElementById('mcons-sub').textContent = 'Actualiza los datos de este consultorio.';
+    document.getElementById('btn-cons-guardar').textContent = '💾 Guardar cambios';
+    document.getElementById('f-nombre').value  = c.nombre  || '';
+    document.getElementById('f-dir').value     = c.direccion|| '';
+    document.getElementById('f-tel').value     = c.telefono || '';
+    document.getElementById('f-horario').value = c.horario  || '';
+    document.getElementById('f-notas').value   = c.notas    || '';
+    document.getElementById('tog-activo').className = 'toggle' + (c.activo?' on':'');
+    this.renderColorPicker();
+    openModal('modal-consultorio');
+  },
+
+  save() {
+    const nombre = document.getElementById('f-nombre').value.trim();
+    if (!nombre) { toast('El nombre es obligatorio', 'error', '💔'); return; }
+    const data = {
+      nombre,
+      direccion: document.getElementById('f-dir').value.trim(),
+      telefono:  document.getElementById('f-tel').value.trim(),
+      horario:   document.getElementById('f-horario').value.trim(),
+      notas:     document.getElementById('f-notas').value.trim(),
+      color:     this.selectedColor,
+      activo:    document.getElementById('tog-activo').classList.contains('on'),
+    };
+    (async () => {
+      try {
+        if (this.editId != null) {
+          await Store.updateConsultorio(this.editId, data);
+          toast('Consultorio actualizado 🌸', 'success');
+        } else {
+          await Store.addConsultorio(data);
+          toast('Consultorio creado 🌸', 'success');
+        }
+        closeModal('modal-consultorio');
+        this.render();
+        this.renderStats();
+      } catch (e) {
+        /* toast en app.js */
+      }
+    })();
+  },
+
+  confirmDelete(id) {
+    this.deleteId = Number(id);
+    document.getElementById('btn-confirm-delete').onclick = () => this.doDelete();
+    openModal('modal-delete-cons');
+  },
+
+  async doDelete() {
+    if (this.deleteId == null || Number.isNaN(this.deleteId)) return;
+    try {
+      await Store.deleteConsultorio(this.deleteId);
+      closeModal('modal-delete-cons');
+      toast('Consultorio eliminado (citas asociadas eliminadas en servidor)', 'warn', '🗑');
+      this.render();
+      this.renderStats();
+    } catch (e) { /* toast en app.js */ }
+    this.deleteId = null;
+  },
+};
+
+window.addEventListener('psicosoft:ready', () => ConsultorioPage.init());
+</script>
+</body>
+</html>
