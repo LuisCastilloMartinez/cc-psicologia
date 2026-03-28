@@ -305,7 +305,7 @@ const Utils = {
     for(let i=0; i<7; i++) {
         const dt = new Date(d);
         dt.setUTCDate(dt.getUTCDate() + i);
-        dates.push(dt);
+        dates.push(dt.toISOString().split('T')[0]);
     }
     return dates;
   },
